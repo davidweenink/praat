@@ -1,0 +1,3 @@
+https://www.thebroadcastbridge.com/content/entry/20824/standards-part-17-about-aac-audio-coding
+overzichtsartikel 
+https://trac.ffmpeg.org/wiki/Encode/AAC

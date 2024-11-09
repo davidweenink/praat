@@ -60,6 +60,7 @@ mp3_inc = include_directories ('external/mp3')
 opusfile_inc = include_directories ('external/opusfile')
 portaudio_inc = include_directories ('external/portaudio')
 vorbis_inc = include_directories ('external/vorbis')
+aac_inc = include_directories ('external/AAC')
 
 threads_dep = dependency('threads')
 
@@ -69,7 +70,7 @@ add_project_arguments (compiler_arguments_c, language: 'c')
 add_project_arguments (compiler_arguments_cpp, language: 'cpp')
 
 praat_dirs = ['artsynth', 'dwsys', 'dwtools', 'EEG', 'FFNet', 'fon', 'foned', 'gram', 'kar', 'LPC', 'melder', 'sensors', 'stat', 'sys']
-praat_external_dirs = ['clapack', 'espeak', 'flac', 'gsl', 'glpk', 'lame', 'mp3', 'opusfile', 'portaudio', 'vorbis']
+praat_external_dirs = ['clapack', 'espeak', 'flac', 'gsl', 'glpk', 'lame', 'mp3', 'opusfile', 'portaudio', 'vorbis', 'AAC']
 
 foreach dir : praat_dirs
 	subdir (dir)
@@ -79,6 +80,6 @@ foreach dir : praat_external_dirs
 endforeach
 
 praat_libs_dep = [libartsynth_dep, libdwsys_dep, libdwtools_dep, libEEG_dep, libFFNet_dep, libfon_dep, libfoned_dep, libgram_dep, libkar_dep, libLPC_dep, libmelder_dep, libsensors_dep, libstat_dep, libsys_dep]
-praat_external_libs_dep = [libclapack_dep, libespeak_dep, libflac_dep, libgsl_dep, libglpk_dep, liblame_dep, libmp3_dep, libopusfile_dep, libportaudio_dep, libvorbis_dep]
+praat_external_libs_dep = [libclapack_dep, libespeak_dep, libflac_dep, libgsl_dep, libglpk_dep, liblame_dep, libmp3_dep, libopusfile_dep, libportaudio_dep, libvorbis_dep, libAAC_dep]
 
 subdir ('main')
