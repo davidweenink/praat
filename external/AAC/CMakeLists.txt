@@ -218,7 +218,7 @@ set(AACENC_SRC
 set(ARITHCODING_SRC
   libArithCoding/src/ac_arith_coder.cpp)
 
-set(DRCDEC_SRC
+set(DRCDEC_SRC 
   libDRCdec/src/FDK_drcDecLib.cpp
   libDRCdec/src/drcDec_gainDecoder.cpp
   libDRCdec/src/drcDec_reader.cpp

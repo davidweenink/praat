@@ -107,7 +107,8 @@ FDK_SRC = '''
   libFDK/src/mdct.cpp
   libFDK/src/nlc_dec.cpp
   libFDK/src/qmf.cpp
-  libFDK/src/scale.cpp'''.split()
+  libFDK/src/scale.cpp
+  '''.split()
 
 MPEGTPDEC_SRC = '''
   libMpegTPDec/src/tpdec_adif.cpp
@@ -198,10 +199,13 @@ SYS_SRC = '''
   libSYS/src/genericStds.cpp
   libSYS/src/syslib_channelMapDescr.cpp'''.split()
 
+sources = FDK_SRC + AACDEC_SRC + ARITHCODING_SRC + DRCDEC_SRC + MPEGTPDEC_SRC + PCMUTILS_SRC + SACDEC_SRC + SBRDEC_SRC + SYS_SRC
+
 libAAC = static_library (
 	'AAC',
 	sources : sources,
-	include_directories : [dwtools_inc, dwsys_inc, kar_inc, melder_inc, sys_inc, stat_inc]
+	include_directories : ['libAACdec/include', 'libArithCoding/include', 'libDRCdec/include', 'libFDK/include', 'libMpegTPDec/include',
+	'libPCMutils/include', 'libSACdec/include', 'libSBRdec/include', 'libSYS/include', melder_inc]
 )
 
 libAAC_dep = declare_dependency (
