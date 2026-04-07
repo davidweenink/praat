@@ -70,13 +70,13 @@ extern "C"
 #if defined(NDEBUG)
     #define PA_VALIDATE_ENDIANNESS
 #else
-    #if defined(PA_LITTLE_ENDIAN)
+    #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
         #define PA_VALIDATE_ENDIANNESS \
         { \
             const long nativeOne = 1; \
             assert( "PortAudio: compile time and runtime endianness don't match" && (((char *)&nativeOne)[0]) == 1 ); \
         }
-    #elif defined(PA_BIG_ENDIAN)
+    #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         #define PA_VALIDATE_ENDIANNESS \
         { \
             const long nativeOne = 1; \
