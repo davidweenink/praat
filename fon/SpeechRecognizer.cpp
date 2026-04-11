@@ -361,11 +361,13 @@ autovector <autovector <WhisperSegment>> doDiarization (constSound sound) {
 		);
 
 	diarize_params diarizeParams = diarize_default_params();
-	if (diarize_full(diarizeContext, diarizeParams, samples32.data(), static_cast <int> (samples32.size())) != 0) {
+	try {
+		diarize_full(diarizeContext, diarizeParams, samples32.data(), static_cast <int> (samples32.size()));
+	} catch (MelderError) {
 		diarize_free(diarizeContext);
-		Melder_throw (U"Diarization failed");
+		Melder_throw (U"Diarization failed.");
 	}
-	const int n_diarization_segments = diarize_full_n_segments(diarizeContext);
+	const unsigned int n_diarization_segments = diarize_full_n_segments(diarizeContext);
 	const int n_speakers = diarize_full_n_speakers(diarizeContext);
 
 	trace(U"Speakers:", n_speakers, U", Segments: ", n_diarization_segments);

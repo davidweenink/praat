@@ -3,6 +3,8 @@
 
 include ../../makefile.defs
 
+CPPFLAGS = -I ../../melder
+
 WHISPER_AND_GGML_OBJECTS = \
 	whisper.o \
 	diarize.o \
