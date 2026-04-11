@@ -2,7 +2,7 @@
 # David Weenink, 30 March 2026
 
 whisper_and_ggml_objects = '''
-	whisper.cpp	diarize.cpp ggml.c ggml-backend.cpp ggml-backend-dl.cpp
+	whisper.cpp	diarize.cpp ggml.cpp ggml-backend.cpp ggml-backend-dl.cpp
 	ggml-backend-reg.cpp ggml-alloc.c ggml-threading.cpp
 	ggml-quants.c'''.split()
 	

@@ -7,9 +7,8 @@ Last maintenance release of Whisper.cpp as of 12 March 2026 was v1.8.3 (Jan 15, 
 The source code in this edition was taken from commit 30c5194c9691e4e9a98b3dea9f19727397d3f46e.
 
 
-1. Selecting files and flattening the file structure.
------------------------------------------------------
-
+1. Selecting files and flattening the file structure
+----------------------------------------------------
 The Whisper.cpp sources are distributed over multiple folders, which are in different deep branches
 of the whisper.cpp root folder. We use only a subset of files and flatten this hierarchy as shown below.
 
@@ -36,7 +35,7 @@ whisper.cpp
             ggml-backend.cpp
             ggml-common.h
             ggml-quants.c
-            ggml.c
+            ggml.c -> ggml.cpp
         ggml-cpu
             amx
                 amx.h
@@ -67,9 +66,21 @@ whisper.cpp
 
 All these files are put into the single external/whispercpp source folder.
 
-2. File modifications.
-----------------------
-2.1. ggml.h
+2. New Files
+------------
+2.1. New file: ggml-type-traits.c
+---------------------------------
+When selecting files, we renamed ggml.c to ggml.cpp to enable C++ exceptions for graceful cleanup after GGML aborts and failing assertions.
+To be able to compile ggml.cpp as C++, we extracted
+```
+    const struct ggml_type_traits type_traits[GGML_TYPE_COUNT]
+```
+from ggml.cpp to ggml-type-traits.c. This is necessary, because C++ doesn't support non-trivial designated initializers.
+
+
+3. File modifications
+---------------------
+3.1. ggml.h
 -----------
 To make GGML and Whisper-cpp compatible with Praat, we add the following to the top of `ggml.h`:
 ```
@@ -86,9 +97,9 @@ This works because `ggml.h` is included, directly or indirectly,
 at the very top of all `ggml` and `whisper` files (last checked 20260312), except:
 ggml-common.h, ggml-backend-dl.cpp, ggml-backend-dl.h, unary-ops.cpp, and unary-ops.h.
 
-2.2. whisper.h and whisper.cpp
+3.2. whisper.h and whisper.cpp
 ------------------------------
-2.2.1.
+3.2.1.
 ------
 To use silero model for speech detection from memory rather than from the external binary file,
 we add the following two variables to the `struct whisper_full_params` in whisper.h (in the section for VAD):
@@ -102,7 +113,7 @@ And we initialize them in whisper.cpp in whisper_full_default_params() (also in 
 		/*.vad_model_data_size		   =*/ 0,
 ```
 
-2.2.2.
+3.2.2.
 ------
 Then we declare a function which is responsible for loading the silero model from internal memory.
 We place it among other WHISPER_API in the section "Voice Activity Detection (VAD)"
@@ -146,7 +157,7 @@ struct whisper_vad_context * whisper_vad_init_from_memory_with_params (
 }
 ```
 
-2.2.3.
+3.2.3.
 ------
 In the same section "Voice Activity Detection (VAD)" in whisper.h, we also declare 5 functions which are meant to
 provide an interface for accessing information about VAD segments.
@@ -183,7 +194,7 @@ int64_t whisper_full_get_vad_segment_vad_end(struct whisper_context * ctx, int i
 }
 ```
 
-2.2.4.
+3.2.4.
 ------
 In whisper.cpp, function whisper_vad() is modified to include the reading from memory. This line:
 ```
@@ -199,7 +210,7 @@ is changed to these lines:
 		}
 ```
 
-2.2.5. Endianness
+3.2.5. Endianness
 -----------------
 Replace any occurrences of
 ```
@@ -210,8 +221,10 @@ with
 	#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 ```
 
-3. Bringing Silero-VAD model to Praat source code.
---------------------------------------------------
+4. Models
+---------
+4.1. Bringing Silero-VAD model to Praat source code
+---------------------------------------------------
 First, we download the ggml Silero model from the original whisper.cpp repository:
 ```
 whisper.cpp/models/download-vad-model.sh silero-v6.2.0
@@ -222,3 +235,11 @@ We then convert this binary to a C header using `xxd` and copy it to external/wh
 ```
 xxd -i -n ggml_silero_bin -n whisper.cpp/models/ggml-silero-v6.2.0.bin > praat/external/whispercpp/ggml-silero-vad-model-data.h
 ```
+
+4.2. Segmentation
+-----------------
+...
+
+4.3. Embedding
+--------------
+...

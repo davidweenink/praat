@@ -3,12 +3,13 @@
 
 include ../../makefile.defs
 
-CPPFLAGS = -I ../../melder
+CPPFLAGS = -I ../../melder -fpermissive -Wno-narrowing -Wno-shadow
 
 WHISPER_AND_GGML_OBJECTS = \
 	whisper.o \
 	diarize.o \
 	ggml.o \
+	ggml-type-traits.o \
 	ggml-backend.o \
 	ggml-backend-dl.o \
 	ggml-backend-reg.o \
