@@ -27,7 +27,7 @@ whisper.cpp
             ggml.h
             gguf.h
         src
-            ggml-alloc.c
+            ggml-alloc.c -> ggml-alloc.cpp
             ggml-backend-dl.cpp
             ggml-backend-dl.h
             ggml-backend-impl.h

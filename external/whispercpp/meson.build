@@ -3,7 +3,7 @@
 
 whisper_and_ggml_objects = '''
 	whisper.cpp	diarize.cpp ggml.cpp ggml-backend.cpp ggml-backend-dl.cpp
-	ggml-backend-reg.cpp ggml-alloc.c ggml-threading.cpp
+	ggml-backend-reg.cpp ggml-alloc.cpp ggml-threading.cpp
 	ggml-quants.c'''.split()
 	
 ggml_cpu_objects = '''
