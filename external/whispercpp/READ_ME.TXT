@@ -34,7 +34,7 @@ whisper.cpp
             ggml-backend-reg.cpp
             ggml-backend.cpp
             ggml-common.h
-            ggml-quants.c
+            ggml-quants.cpp -> ggml-quants.cpp
             ggml.c -> ggml.cpp
         ggml-cpu
             amx

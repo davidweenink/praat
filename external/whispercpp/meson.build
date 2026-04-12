@@ -2,9 +2,9 @@
 # David Weenink, 30 March 2026
 
 whisper_and_ggml_objects = '''
-	whisper.cpp	diarize.cpp ggml.cpp ggml-backend.cpp ggml-backend-dl.cpp
-	ggml-backend-reg.cpp ggml-alloc.cpp ggml-threading.cpp
-	ggml-quants.c'''.split()
+	whisper.cpp	diarize.cpp ggml.cpp ggml-type-traits.c ggml-memory-pool.cpp
+	ggml-backend.cpp ggml-backend-dl.cpp ggml-backend-reg.cpp ggml-alloc.cpp
+	ggml-threading.cpp ggml-quants.cpp'''.split()
 	
 ggml_cpu_objects = '''
 	ggml-cpu.cpp ggml-cpu-cpp.cpp traits.cpp quants.c
