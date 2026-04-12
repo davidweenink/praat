@@ -10,6 +10,7 @@ WHISPER_AND_GGML_OBJECTS = \
 	diarize.o \
 	ggml.o \
 	ggml-type-traits.o \
+	ggml-memory-pool.o \
 	ggml-backend.o \
 	ggml-backend-dl.o \
 	ggml-backend-reg.o \
