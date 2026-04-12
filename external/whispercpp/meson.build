@@ -7,7 +7,7 @@ whisper_and_ggml_objects = '''
 	ggml-quants.c'''.split()
 	
 ggml_cpu_objects = '''
-	ggml-cpu.c ggml-cpu-cpp.cpp traits.cpp quants.c
+	ggml-cpu.cpp ggml-cpu-cpp.cpp traits.cpp quants.c
 	unary-ops.cpp binary-ops.cpp ops.cpp vec.cpp'''.split()
 
 model_objects = '''

@@ -43,7 +43,7 @@ whisper.cpp
             binary-ops.cpp
             binary-ops.h
             common.h
-            ggml-cpu.c
+            ggml-cpu.cpp -> ggml-cpu.cpp
             ggml-cpu.cpp -> ggml-cpu-cpp.cpp
             ggml-cpu-impl.h
             ops.cpp
@@ -70,12 +70,22 @@ All these files are put into the single external/whispercpp source folder.
 ------------
 2.1. New file: ggml-type-traits.c
 ---------------------------------
-When selecting files, we renamed ggml.c to ggml.cpp to enable C++ exceptions for graceful cleanup after GGML aborts and failing assertions.
-To be able to compile ggml.cpp as C++, we extracted
+When selecting files, we renamed the following files to enable C++ exceptions for graceful cleanup after GGML aborts and failing assertions:
+ggml.c -> ggml.cpp
+ggml-cpu.c -> ggml.cpp
+
+The following step is necessary to be able to compile ggml.cpp and ggml-cpu.cpp as C++,
+because C++ doesn't support non-trivial designated initializers.
+
+We extracted the following array from ggml.cpp to ggml-type-traits.c.
 ```
     const struct ggml_type_traits type_traits[GGML_TYPE_COUNT]
 ```
-from ggml.cpp to ggml-type-traits.c. This is necessary, because C++ doesn't support non-trivial designated initializers.
+We also extracted the following array from ggml-cpu.cpp to ggml-type-traits.c.
+```
+    const struct ggml_type_traits_cpu type_traits_cpu[GGML_TYPE_COUNT]
+```
+
 
 
 3. File modifications
