@@ -7,6 +7,9 @@
 #include "ggml-cpu.h"
 #include "ggml.h"
 
+#include "melder.h"
+#include "ggml-memory-pool.h"
+
 // FIXME: required here for quantization functions
 #include "ggml-quants.h"
 
@@ -253,7 +256,7 @@ void ggml_abort(const char * file, int line, const char * fmt, ...) {
         ggml_print_backtrace();
     }
 
-    abort();
+ 	Melder_throw (Melder_peek8to32 (message));
 }
 
 // ggml_print_backtrace is registered with std::set_terminate by ggml.cpp
@@ -314,20 +317,22 @@ void ggml_log_callback_default(enum ggml_log_level level, const char * text, voi
 
 
 void * ggml_aligned_malloc(size_t size) {
+    //TRACE
+    trace (U"Requested to allocate ", size, U" bytes");
+    if (size == 0)
+        GGML_ABORT("Behavior may be unexpected when allocating 0 bytes for ggml_aligned_malloc!\n");
+
 #if defined(__s390x__)
     const int alignment = 256;
 #else
     const int alignment = 64;
 #endif
 
+    void *aligned_memory = nullptr;
+
 #if defined(_MSC_VER) || defined(__MINGW32__)
-    return _aligned_malloc(size, alignment);
+    aligned_memory = _aligned_malloc(size, alignment);
 #else
-    if (size == 0) {
-        GGML_LOG_WARN("Behavior may be unexpected when allocating 0 bytes for ggml_aligned_malloc!\n");
-        return NULL;
-    }
-    void * aligned_memory = NULL;
   #ifdef GGML_USE_CPU_HBM
     int result = hbw_posix_memalign(&aligned_memory, alignment, size);
   #elif TARGET_OS_OSX
@@ -362,14 +367,29 @@ void * ggml_aligned_malloc(size_t size) {
                 error_desc = "insufficient memory";
                 break;
         }
-        GGML_LOG_ERROR("%s: %s (attempted to allocate %6.2f MB)\n", __func__, error_desc, size/(1024.0*1024.0));
-        return NULL;
+        GGML_ABORT("%s: %s (attempted to allocate %6.2f MB)\n", __func__, error_desc, size/(1024.0*1024.0));
+    }
+#endif
+
+    /*
+        Single exit point: throw an exception if memory not allocated, trace, and register allocation in theGgmlMemoryPool.
+    */
+    if (! aligned_memory)
+        GGML_ABORT ("Failed to allocate %6.2f MB\n", size/(1024.0*1024.0));
+
+    trace (U"Allocated", size, U" bytes at ", Melder_pointer (aligned_memory));
+    if (theGgmlMemoryPool) {
+        Melder_assert (size > 0);
+        theGgmlMemoryPool -> add (aligned_memory, size, true);
     }
     return aligned_memory;
-#endif
 }
 
 void ggml_aligned_free(void * ptr, size_t size) {
+    trace (U"Freeing memory at ", Melder_pointer (ptr));
+    if (theGgmlMemoryPool)
+        theGgmlMemoryPool -> remove (ptr, size);
+
     GGML_UNUSED(size);
 #if defined(_MSC_VER) || defined(__MINGW32__)
     _aligned_free(ptr);
@@ -386,38 +406,53 @@ void ggml_aligned_free(void * ptr, size_t size) {
 #endif
 }
 
-
 inline static void * ggml_malloc(size_t size) {
-    if (size == 0) {
-        GGML_LOG_WARN("Behavior may be unexpected when allocating 0 bytes for ggml_malloc!\n");
-        return NULL;
-    }
+    if (size == 0)
+        GGML_ABORT("Behavior may be unexpected when allocating 0 bytes for ggml_malloc!\n");
+
     void * result = malloc(size);
-    if (result == NULL) {
-        GGML_LOG_ERROR("%s: failed to allocate %6.2f MB\n", __func__, size/(1024.0*1024.0));
-        GGML_ABORT("fatal error");
+    if (! result)
+        GGML_ABORT("%s: failed to allocate %6.2f MB\n", __func__, size/(1024.0*1024.0));
+
+    trace (U"Allocated ", size, U" bytes at ", Melder_pointer (result));
+    if (theGgmlMemoryPool) {
+        Melder_assert (size > 0);
+        theGgmlMemoryPool -> add (result, size, false);
     }
     return result;
 }
 
-// calloc
+// calloc - allowing to return NULL
 inline static void * ggml_calloc(size_t num, size_t size) {
     if (num == 0 || size == 0) {
         GGML_LOG_WARN("Behavior may be unexpected when allocating 0 bytes for ggml_calloc!\n");
+        trace (U"Behavior may be unexpected when allocating 0 bytes for ggml_calloc!");
         return NULL;
     }
     void * result = calloc(num, size);
-    if (result == NULL) {
-        GGML_LOG_ERROR("%s: failed to allocate %6.2f MB\n", __func__, size/(1024.0*1024.0));
-        GGML_ABORT("fatal error");
+    if (! result)
+        GGML_ABORT("%s: failed to allocate %6.2f MB\n", __func__, num * size/(1024.0*1024.0));
+
+    trace (U"Allocated ", num * size, U" bytes at ", Melder_pointer (result));
+    if (theGgmlMemoryPool) {
+        Melder_assert (size > 0);
+        theGgmlMemoryPool -> add (result, num * size, false);
     }
     return result;
+}
+
+void ggml_raw_free(void *ptr) {
+    trace (U"Freeing memory at ", Melder_pointer (ptr));
+    if (theGgmlMemoryPool)
+        theGgmlMemoryPool -> remove (ptr);
+
+    free (ptr);
 }
 
 #define GGML_MALLOC(size)      ggml_malloc(size)
 #define GGML_CALLOC(num, size) ggml_calloc(num, size)
 
-#define GGML_FREE(ptr) free(ptr)
+#define GGML_FREE(ptr)         ggml_raw_free(ptr)
 
 const char * ggml_status_to_string(enum ggml_status status) {
     switch (status) {
@@ -1256,9 +1291,6 @@ struct ggml_context * ggml_init(struct ggml_init_params params) {
 
     struct ggml_context * ctx = GGML_MALLOC(sizeof(struct ggml_context));
 
-	GGML_LOG_INFO("ggml_init: asked to allocate %u bytes, mem_buffer = %p\n",
-			(unsigned)params.mem_size, (void *)params.mem_buffer);
-
     // allow to call ggml_init with 0 size
     if (params.mem_size == 0) {
         params.mem_size = GGML_MEM_ALIGN;
@@ -1275,8 +1307,6 @@ struct ggml_context * ggml_init(struct ggml_init_params params) {
         /*.objects_begin      =*/ NULL,
         /*.objects_end        =*/ NULL,
     };
-	GGML_LOG_INFO("ggml_init: going to allocate %u bytes, mem_buffer = %p\n",
-			(unsigned)ctx->mem_size, (void *)ctx->mem_buffer);
 
     GGML_ASSERT(ctx->mem_buffer != NULL);
 

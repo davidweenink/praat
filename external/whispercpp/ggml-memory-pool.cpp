@@ -20,34 +20,66 @@
 #include "ggml-impl.h"
 #include "melder.h"
 
-void GgmlMemoryPool :: add(void *ptr, size_t size = 0) {
-	TRACE
-	if (ptr == nullptr) {
-		trace (U"Trying to add nullptr to allocations)");
-		return;
-	}
-	if (allocations .count(ptr))
-		trace (U"Something is very wrong: pointer already in allocations (possible double allocation or missing remove)");
+GgmlMemoryPool *theGgmlMemoryPool = nullptr;
 
-	allocations [ptr] = size;
+void GgmlMemoryPool :: add(void *ptr, size_t size, bool aligned) {
+    TRACE
+    if (! ptr) {
+        trace (U"Trying to add nullptr to allocations)");
+        return;
+    }
+    if (allocations.count (ptr))
+        trace (U"Something is very wrong: pointer already in allocations (possible double allocation or missing remove)");
+
+    Allocation allocation = {ptr, size, aligned};
+    trace (U"Added to allocations: ", allocation.size, U" bytes at ", Melder_pointer (allocation.ptr), allocation.aligned ? U", aligned" : U"");
+    allocations [ptr] = allocation;
 }
 
 void GgmlMemoryPool :: remove(void *ptr) {
-	if (ptr == nullptr)
-		return;
-	allocations .erase (ptr);
+    TRACE
+    if (! ptr) {
+        trace (U"Trying to remove nullptr from allocations)");
+        return;
+    }
+    Allocation allocation = allocations [ptr];
+    trace (U"Removed from allocations: ", allocation.size, U" bytes at ", Melder_pointer (allocation.ptr), allocation.aligned ? U", aligned" : U"");
+    allocations .erase (ptr);
+}
+
+void GgmlMemoryPool :: remove(void *ptr, size_t size) {
+    TRACE
+    if (! ptr) {
+        trace (U"Trying to remove nullptr from allocations)");
+        return;
+    }
+    Allocation allocation = allocations [ptr];
+    Melder_assert (size == allocation.size);
+    trace (U"Removed from allocations: ", allocation.size, U" bytes at ", Melder_pointer (allocation.ptr), allocation.aligned ? U", aligned" : U"");
+    allocations .erase (ptr);
 }
 
 void GgmlMemoryPool :: clear() {
-	if (allocations.empty())
-		return;
-	for (auto & allocation : allocations) {
-		if (allocation .first == nullptr)
-			continue;
-		if (allocation .second)
-			ggml_aligned_free (allocation .first, allocation .second);
-		else
-			free (allocation .first);
-	}
-	allocations.clear();
+    theGgmlMemoryPool = nullptr;   // to prevent ggml_aligned_free() and ggml_raw_free() from intervening
+
+    TRACE
+    trace (U"Clearing allocations...");
+    if (allocations.empty()) {
+        trace (U"Allocations were empty");
+        return;
+    }
+
+    for (auto & allocation_pair : allocations) {
+        if (allocation_pair.first == nullptr)
+            continue;
+        trace (U"Emergency freeing: ", allocation_pair.second.size, U" bytes at ", Melder_pointer (allocation_pair.first),
+                allocation_pair.second.aligned ? U", aligned" : U"");
+        if (allocation_pair.second.aligned)
+            ggml_aligned_free (allocation_pair.first, allocation_pair.second.size);
+        else
+            ggml_raw_free (allocation_pair.first);
+    }
+
+    trace (U"Allocations cleared");
+    allocations.clear();
 }

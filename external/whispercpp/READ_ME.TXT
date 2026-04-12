@@ -113,9 +113,64 @@ This works because `ggml.h` is included, directly or indirectly,
 at the very top of all `ggml` and `whisper` files (last checked 20260312), except:
 ggml-common.h, ggml-backend-dl.cpp, ggml-backend-dl.h, unary-ops.cpp, and unary-ops.h.
 
-3.2. whisper.h and whisper.cpp
+3.2. ggml.cpp
+-------------
+3.2.1. To make use of Melder_throw and TRACE/trace as well as GGML memory pool, we add the following to the top of `ggml.cpp`:
+```
+#include "melder.h"
+#include "ggml-memory-pool.h"
+```
+
+3.2.2. To intercept GGML abortions and throw Melder exception instead, we change the following line in ggml_abort():
+```
+//abort();   // this is the old line which needs to be changed
+Melder_throw (Melder_peek8to32 (message));   // this is the new line
+```
+
+3.2.3. We also change the functions ggml_aligned_malloc(), ggml_aligned_free(), ggml_malloc(), ggml_calloc(),
+so that all of them except ggml_calloc() do not return NULL, instead calling GGML_ABORT().
+Also, to register the allocations in our GGML memory pool, we add the following to the ggml_aligned_malloc():
+```
+    if (theGgmlMemoryPool) {
+        Melder_assert (size > 0);
+        theGgmlMemoryPool -> add (aligned_memory, size, true);   // third argument bool aligned = true
+    }
+```
+and the following to both ggml_malloc() and ggml_calloc():
+```
+    if (theGgmlMemoryPool) {
+        Melder_assert (size > 0);
+        theGgmlMemoryPool -> add (result, size, false);   // third argument bool aligned = false
+    }
+```
+We also add the following to ggml_aligned_free():
+```
+    if (theGgmlMemoryPool)
+        theGgmlMemoryPool -> remove (ptr, size);
+```
+And we change `GGML_FREE` macro from `free(ptr)` to `ggml_raw_free(ptr)`:
+```
+#define GGML_FREE(ptr)         ggml_raw_free(ptr)
+```
+Now we declare a new GGML_API function in ggml-impl.h, right below `ggml_aligned_free()`:
+```
+GGML_API void * ggml_aligned_malloc(size_t size);
+GGML_API void ggml_aligned_free(void * ptr, size_t size);
+GGML_API void ggml_raw_free(void * ptr);   // <------------------- THIS ONE
+```
+And we also define this function in ggml.cpp:
+```
+void ggml_raw_free(void *ptr) {
+    if (theGgmlMemoryPool)
+        theGgmlMemoryPool -> remove (ptr);
+
+    free (ptr);
+}
+```
+
+3.3. whisper.h and whisper.cpp
 ------------------------------
-3.2.1.
+3.3.1.
 ------
 To use silero model for speech detection from memory rather than from the external binary file,
 we add the following two variables to the `struct whisper_full_params` in whisper.h (in the section for VAD):
@@ -129,7 +184,7 @@ And we initialize them in whisper.cpp in whisper_full_default_params() (also in 
 		/*.vad_model_data_size		   =*/ 0,
 ```
 
-3.2.2.
+3.3.2.
 ------
 Then we declare a function which is responsible for loading the silero model from internal memory.
 We place it among other WHISPER_API in the section "Voice Activity Detection (VAD)"
@@ -173,7 +228,7 @@ struct whisper_vad_context * whisper_vad_init_from_memory_with_params (
 }
 ```
 
-3.2.3.
+3.3.3.
 ------
 In the same section "Voice Activity Detection (VAD)" in whisper.h, we also declare 5 functions which are meant to
 provide an interface for accessing information about VAD segments.
@@ -210,7 +265,7 @@ int64_t whisper_full_get_vad_segment_vad_end(struct whisper_context * ctx, int i
 }
 ```
 
-3.2.4.
+3.3.4.
 ------
 In whisper.cpp, function whisper_vad() is modified to include the reading from memory. This line:
 ```
@@ -226,7 +281,7 @@ is changed to these lines:
 		}
 ```
 
-3.2.5. Endianness
+3.3.5. Endianness
 -----------------
 Replace any occurrences of
 ```
@@ -254,8 +309,8 @@ xxd -i -n ggml_silero_bin -n whisper.cpp/models/ggml-silero-v6.2.0.bin > praat/e
 
 4.2. Segmentation
 -----------------
-...
+todo
 
 4.3. Embedding
 --------------
-...
+todo

@@ -28,15 +28,24 @@
 
 #include <unordered_map>
 
+struct Allocation {
+    void *ptr;
+    size_t size;
+    bool aligned;
+};
+
 class GgmlMemoryPool {
 private:
-	std::unordered_map <void *, size_t> allocations;
+    std::unordered_map <void *, Allocation> allocations;
 
 public:
-	void add(void *ptr, size_t size);   // registers a successful allocation
-	void remove(void *ptr);   // removes allocation after freeing the memory normally; does nothing if *ptr was not registered
-	void clear();   // free all registered allocations and clear the pool
+    void add(void *ptr, size_t size, bool aligned);   // registers a successful allocation
+    void remove(void *ptr);   // removes allocation after freeing the memory normally by GGML_FREE()
+    void remove(void *ptr, size_t size);   // removes allocation after freeing the memory normally by ggml_aligned_free()
+    void clear();   // free all registered allocations and clear the pool
 };
+
+extern GgmlMemoryPool *theGgmlMemoryPool;
 
 /* End of file ggml-memory-pool.h */
 #endif
