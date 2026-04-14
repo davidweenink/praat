@@ -29,7 +29,6 @@
 #include <unordered_map>
 
 struct Allocation {
-    void *ptr;
     size_t size;
     bool aligned;
 };
@@ -43,9 +42,10 @@ public:
     void remove(void *ptr);   // removes allocation after freeing the memory normally by GGML_FREE()
     void remove(void *ptr, size_t size);   // removes allocation after freeing the memory normally by ggml_aligned_free()
     void clear();   // free all registered allocations and clear the pool
+	size_t size() const;
 };
 
-extern GgmlMemoryPool *theGgmlMemoryPool;
+extern GgmlMemoryPool theGgmlMemoryPool;
 
 /* End of file ggml-memory-pool.h */
 #endif

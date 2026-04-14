@@ -23,6 +23,7 @@
 struct whisper_context;
 struct whisper_vad_context;
 struct whisper_vad_segments;
+struct diarize_context;
 
 /*
 	Default Whisper model parameters.
@@ -97,6 +98,25 @@ struct autoWhisperVadSegments {
 	[[nodiscard]]
 	whisper_vad_segments * get () const { return ptr; }
 };
+
+struct autoDiarizeContext {
+	diarize_context *ptr;
+
+	autoDiarizeContext (diarize_context * p = nullptr) : ptr(p) {}
+	~autoDiarizeContext ();
+
+	autoDiarizeContext (const autoDiarizeContext&) = delete;
+	autoDiarizeContext& operator= (const autoDiarizeContext&) = delete;
+
+	autoDiarizeContext (autoDiarizeContext&& other) noexcept : ptr(other.ptr) {
+		other.ptr = nullptr;
+	}
+	autoDiarizeContext& operator= (autoDiarizeContext&& other) noexcept;
+
+	[[nodiscard]]
+	diarize_context * get () const { return ptr; }
+};
+
 
 struct SileroVadParams {
 	double speechProbabilityThreshold = theVadDefaultThreshold;   // probability threshold to decide that sound is speech

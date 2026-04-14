@@ -382,17 +382,15 @@ void * ggml_aligned_malloc(size_t size) {
         GGML_ABORT ("Failed to allocate %6.2f MB\n", size/(1024.0*1024.0));
 
     trace (U"Allocated", size, U" bytes at ", Melder_pointer (aligned_memory));
-    if (theGgmlMemoryPool) {
-        Melder_assert (size > 0);
-        theGgmlMemoryPool -> add (aligned_memory, size, true);
-    }
+    Melder_assert (size > 0);
+    theGgmlMemoryPool.add (aligned_memory, size, true);
     return aligned_memory;
 }
 
 void ggml_aligned_free(void * ptr, size_t size) {
+    //TRACE
     trace (U"Freeing memory at ", Melder_pointer (ptr));
-    if (theGgmlMemoryPool)
-        theGgmlMemoryPool -> remove (ptr, size);
+    theGgmlMemoryPool.remove (ptr, size);
 
     GGML_UNUSED(size);
 #if defined(_MSC_VER) || defined(__MINGW32__)
@@ -411,6 +409,7 @@ void ggml_aligned_free(void * ptr, size_t size) {
 }
 
 void * ggml_malloc(size_t size) {
+	//TRACE
     if (size == 0)
         GGML_ABORT("Behavior may be unexpected when allocating 0 bytes for ggml_malloc!\n");
 
@@ -419,15 +418,14 @@ void * ggml_malloc(size_t size) {
         GGML_ABORT("%s: failed to allocate %6.2f MB\n", __func__, size/(1024.0*1024.0));
 
     trace (U"Allocated ", size, U" bytes at ", Melder_pointer (result));
-    if (theGgmlMemoryPool) {
-        Melder_assert (size > 0);
-        theGgmlMemoryPool -> add (result, size, false);
-    }
+    Melder_assert (size > 0);
+    theGgmlMemoryPool.add (result, size, false);
     return result;
 }
 
 // calloc - allowing to return NULL
 void * ggml_calloc(size_t num, size_t size) {
+	//TRACE
     if (num == 0 || size == 0) {
         GGML_LOG_WARN("Behavior may be unexpected when allocating 0 bytes for ggml_calloc!\n");
         trace (U"Behavior may be unexpected when allocating 0 bytes for ggml_calloc!");
@@ -438,14 +436,13 @@ void * ggml_calloc(size_t num, size_t size) {
         GGML_ABORT("%s: failed to allocate %6.2f MB\n", __func__, num * size/(1024.0*1024.0));
 
     trace (U"Allocated ", num * size, U" bytes at ", Melder_pointer (result));
-    if (theGgmlMemoryPool) {
-        Melder_assert (size > 0);
-        theGgmlMemoryPool -> add (result, num * size, false);
-    }
+    Melder_assert (size > 0);
+    theGgmlMemoryPool.add (result, num * size, false);
     return result;
 }
 
 void * ggml_realloc(void * ptr, size_t size) {
+	//TRACE
     if (size == 0)
         GGML_ABORT("Behavior may be unexpected when allocating 0 bytes for ggml_malloc!\n");
 
@@ -454,19 +451,16 @@ void * ggml_realloc(void * ptr, size_t size) {
         GGML_ABORT("%s: failed to reallocate %6.2f MB\n", __func__, size/(1024.0*1024.0));
 
     trace (U"Reallocated to new size ", size, U" bytes, old location ", Melder_pointer (ptr), U", new location ", Melder_pointer (result));
-    if (theGgmlMemoryPool) {
-        Melder_assert (size > 0);
-        theGgmlMemoryPool -> remove (ptr);
-        theGgmlMemoryPool -> add (result, size, false);
-    }
+    Melder_assert (size > 0);
+    theGgmlMemoryPool.remove (ptr);
+    theGgmlMemoryPool.add (result, size, false);
     return result;
 }
 
 void ggml_raw_free(void *ptr) {
+	//TRACE
     trace (U"Freeing memory at ", Melder_pointer (ptr));
-    if (theGgmlMemoryPool)
-        theGgmlMemoryPool -> remove (ptr);
-
+    theGgmlMemoryPool.remove (ptr);
     free (ptr);
 }
 

@@ -1,6 +1,6 @@
 /* SpeechRecognizer.cpp
  *
- * Copyright (C) 2025 Anastasia Shchupak
+ * Copyright (C) 2025,2026 Anastasia Shchupak
  *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include "whisper.h"
 #include "diarize.h"
 #include "melder.h"
+#include "ggml-memory-pool.h"
 #include "ggml-silero-vad-model-data.h"
 
 #include "oo_DESTROY.h"
@@ -47,7 +48,12 @@ extern unsigned int model_ggml_segmentation_length;
 extern unsigned char model_ggml_embedding_data[];
 extern unsigned int model_ggml_embedding_length;
 
-autoWhisperContext :: ~autoWhisperContext () { whisper_free (ptr); }
+autoWhisperContext :: ~autoWhisperContext () {
+	TRACE
+	trace (U"Destroying whisper context at ", Melder_pointer (ptr));
+	whisper_free (ptr);
+	trace (U"GGML memory pool size after whisper_free is ", theGgmlMemoryPool.size());
+}
 autoWhisperContext& autoWhisperContext :: operator= (autoWhisperContext&& other) noexcept {
 	if (this != & other) {
 		whisper_free (ptr);
@@ -57,7 +63,12 @@ autoWhisperContext& autoWhisperContext :: operator= (autoWhisperContext&& other)
 	return * this;
 }
 
-autoWhisperVadContext :: ~autoWhisperVadContext () { whisper_vad_free (ptr); }
+autoWhisperVadContext :: ~autoWhisperVadContext () {
+	TRACE
+	trace (U"Destroying Silero-VAD context at ", Melder_pointer (ptr));
+	whisper_vad_free (ptr);
+	trace (U"GGML memory pool size after whisper_vad_free is ", theGgmlMemoryPool.size());
+}
 autoWhisperVadContext & autoWhisperVadContext :: operator= (autoWhisperVadContext && other) noexcept {
 	if (this != & other) {
 		whisper_vad_free (ptr);
@@ -67,10 +78,30 @@ autoWhisperVadContext & autoWhisperVadContext :: operator= (autoWhisperVadContex
 	return * this;
 }
 
-autoWhisperVadSegments :: ~autoWhisperVadSegments () { whisper_vad_free_segments (ptr); }
+autoWhisperVadSegments :: ~autoWhisperVadSegments () {
+	TRACE
+	trace (U"Destroying Silero-VAD segments at ", Melder_pointer (ptr));
+	whisper_vad_free_segments (ptr);
+	trace (U"GGML memory pool size after whisper_vad_free_segments is ", theGgmlMemoryPool.size());
+}
 autoWhisperVadSegments & autoWhisperVadSegments :: operator= (autoWhisperVadSegments && other) noexcept {
 	if (this != & other) {
 		whisper_vad_free_segments (ptr);
+		ptr = other.ptr;
+		other.ptr = nullptr;
+	}
+	return * this;
+}
+
+autoDiarizeContext :: ~autoDiarizeContext () {
+	TRACE
+	trace (U"Destroying diarize context at ", Melder_pointer (ptr));
+	diarize_free (ptr);
+	trace (U"GGML memory pool size after diarize_free is ", theGgmlMemoryPool.size());
+}
+autoDiarizeContext& autoDiarizeContext :: operator= (autoDiarizeContext&& other) noexcept {
+	if (this != & other) {
+		diarize_free (ptr);
 		ptr = other.ptr;
 		other.ptr = nullptr;
 	}
@@ -168,9 +199,9 @@ autoSpeechRecognizer SpeechRecognizer_create (conststring32 modelName, conststri
 			Melder_throw (U"Cannot create Whisper context from: ", modelPath, U". Model file not found?");
 
 		my whisperContext = autoWhisperContext (ctx);
-
 		return me;
 	} catch (MelderError) {
+		theGgmlMemoryPool.clear();
 		Melder_throw (U"SpeechRecognizer not created.");
 	}
 }
@@ -233,9 +264,15 @@ static void SpeechRecognizer_runWhisper (SpeechRecognizer me, constSound sound,
 		Run Whisper.
 	*/
 	supressWhisperLogging ();
-	if (whisper_full (my whisperContext.get(), params, samples32.data(), static_cast <int> (samples32.size())) != 0)
-		Melder_throw (U"Whisper failed to process audio");
-	whisper_print_timings(my whisperContext.get());
+	try {
+		if (whisper_full (my whisperContext.get(), params, samples32.data(), static_cast <int> (samples32.size())) != 0)
+			Melder_throw (U"Whisper failed to process audio");
+		whisper_print_timings(my whisperContext.get());
+	} catch (MelderError) {
+		theGgmlMemoryPool.clear();
+		my whisperContext .ptr = nullptr;
+		Melder_throw (U"Whisper run out of memory. SpeechRecognizer objects are no longer usable and must be recreated.");
+	}
 }
 
 static bool endsWithTerminalPunctuation(conststring32 token) {
@@ -259,18 +296,18 @@ static bool endsWithPunctuation(conststring32 token) {
 
 autovector <WhisperSegment> doSileroVad (constSound sound, const SileroVadParams &sileroVadParams,
 		conststring32 nonSpeechLabel, conststring32 speechLabel) {
+	//TRACE
+	trace (U"Sound xmin = ", sound -> xmin, U", sound xmax = ", sound -> xmax);
+	supressWhisperLogging ();
+
+	/*
+		Remember original sound -> xmin and sound -> xmax before resampling; and resample.
+	*/
+	double soundStart = sound -> xmin;
+	double soundEnd = sound -> xmax;
+	std::vector <float> samples32 = resampleForWhisper (sound);
+
 	try {
-		//TRACE
-		trace (U"Sound xmin = ", sound -> xmin, U", sound xmax = ", sound -> xmax);
-		supressWhisperLogging ();
-
-		/*
-			Remember original sound -> xmin and sound -> xmax before resampling; and resample.
-		*/
-		double soundStart = sound -> xmin;
-		double soundEnd = sound -> xmax;
-		std::vector <float> samples32 = resampleForWhisper (sound);
-
 		/*
 			Initialize VAD context.
 		*/
@@ -348,6 +385,7 @@ autovector <WhisperSegment> doSileroVad (constSound sound, const SileroVadParams
 
 		return allIntervals;
 	} catch (MelderError) {
+		theGgmlMemoryPool.clear();   // this runs after destructors of local objects, therefore it must be safe!
 		Melder_throw (U"Voice Activity not detected for sound.");
 	}
 }
@@ -355,71 +393,73 @@ autovector <WhisperSegment> doSileroVad (constSound sound, const SileroVadParams
 autovector <autovector <WhisperSegment>> doDiarization (constSound sound) {
 	//TRACE
 	std::vector <float> samples32 = resampleForWhisper (sound);
-	diarize_context * diarizeContext = diarize_init_from_memory (
-		model_ggml_segmentation_data, model_ggml_segmentation_length,
-		model_ggml_embedding_data, model_ggml_embedding_length
-		);
-
-	diarize_params diarizeParams = diarize_default_params();
 	try {
-		diarize_full(diarizeContext, diarizeParams, samples32.data(), static_cast <int> (samples32.size()));
-	} catch (MelderError) {
-		diarize_free(diarizeContext);
-		Melder_throw (U"Diarization failed.");
-	}
-	const unsigned int n_diarization_segments = diarize_full_n_segments(diarizeContext);
-	const int n_speakers = diarize_full_n_speakers(diarizeContext);
+		autoDiarizeContext diarizeContext = diarize_init_from_memory (
+			model_ggml_segmentation_data, model_ggml_segmentation_length,
+			model_ggml_embedding_data, model_ggml_embedding_length
+			);
+		diarize_params diarizeParams = diarize_default_params();
+		diarize_full(diarizeContext.get(), diarizeParams, samples32.data(), static_cast <int> (samples32.size()));
+		const unsigned int n_diarization_segments = diarize_full_n_segments(diarizeContext.get());
+		const int n_speakers = diarize_full_n_speakers(diarizeContext.get());
 
-	trace(U"Speakers:", n_speakers, U", Segments: ", n_diarization_segments);
+		trace(U"Speakers:", n_speakers, U", Segments: ", n_diarization_segments);
 
-	autovector <autovector <WhisperSegment>> speakers = newvectorzero <autovector <WhisperSegment>> (n_speakers);
-	/*
-		Collect segments for each speaker.
-	*/
-	for (int i = 1; i <= n_speakers; ++i) {
-		double currentIntervalStart = sound -> xmin;
+		autovector <autovector <WhisperSegment>> speakers = newvectorzero <autovector <WhisperSegment>> (n_speakers);
+		/*
+			Collect segments for each speaker.
+		*/
+		for (int i = 1; i <= n_speakers; ++i) {
+			double currentIntervalStart = sound -> xmin;
 
-		for (int segment = 0; segment < n_diarization_segments; ++ segment) {
-			if (diarize_full_get_segment_speaker(diarizeContext, segment) + 1 != i)   // this segment is from a different speaker
-				continue;
+			for (int segment = 0; segment < n_diarization_segments; ++ segment) {
+				if (diarize_full_get_segment_speaker(diarizeContext.get(), segment) + 1 != i)   // this segment is from a different speaker
+					continue;
 
-			const double tmin = diarize_full_get_segment_t0(diarizeContext, segment);
-			const double tmax = diarize_full_get_segment_t1(diarizeContext, segment);
+				const double tmin = diarize_full_get_segment_t0(diarizeContext.get(), segment);
+				const double tmax = diarize_full_get_segment_t1(diarizeContext.get(), segment);
 
-			if (tmin > currentIntervalStart) {
+				if (tmin > currentIntervalStart) {
+					WhisperSegment *gap = speakers [i].append();
+					gap -> text = Melder_dup (U"");
+					gap -> tmin = currentIntervalStart;
+					gap -> tmax = tmin;
+				}
+
+				WhisperSegment *speakerSegment = speakers [i].append();
+				speakerSegment -> text = Melder_dup (Melder_cat (U"SPEAKER_", Melder_integer (i)));
+				speakerSegment -> tmin = tmin;
+				speakerSegment -> tmax = tmax;
+
+				trace (U"Diarization: [ ", speakerSegment -> tmin, U" - ", speakerSegment -> tmax, U" ] \"",
+						speakerSegment -> text.get(), U"\"");
+
+				currentIntervalStart = tmax;
+			}
+
+			if (currentIntervalStart < sound -> xmax) {
 				WhisperSegment *gap = speakers [i].append();
 				gap -> text = Melder_dup (U"");
 				gap -> tmin = currentIntervalStart;
-				gap -> tmax = tmin;
+				gap -> tmax = sound -> xmax;
 			}
-
-			WhisperSegment *speakerSegment = speakers [i].append();
-			speakerSegment -> text = Melder_dup (Melder_cat (U"SPEAKER_", Melder_integer (i)));
-			speakerSegment -> tmin = tmin;
-			speakerSegment -> tmax = tmax;
-
-			trace (U"Diarization: [ ", speakerSegment -> tmin, U" - ", speakerSegment -> tmax, U" ] \"",
-					speakerSegment -> text.get(), U"\"");
-
-			currentIntervalStart = tmax;
 		}
 
-		if (currentIntervalStart < sound -> xmax) {
-			WhisperSegment *gap = speakers [i].append();
-			gap -> text = Melder_dup (U"");
-			gap -> tmin = currentIntervalStart;
-			gap -> tmax = sound -> xmax;
-		}
+		return speakers;
+
+	} catch (MelderError) {
+		theGgmlMemoryPool.clear();
+		Melder_throw (U"Diarization failed.");
 	}
-
-	diarize_free(diarizeContext);
-	return speakers;
 }
 
 WhisperTranscription SpeechRecognizer_recognize (SpeechRecognizer me, constSound sound,
 		bool useVad, const SileroVadParams &sileroVadParams, bool diarize) {
 	try {
 		//TRACE
+		Melder_require (my whisperContext.get(),
+				U"This SpeechRecognizer object is not usable anymore as it ran out of memory. ",
+				U"Please remove it and create a new one.");
 		trace (U"Sound xmin = ", sound -> xmin, U", sound xmax = ", sound -> xmax);
 		/*
 			Run Whisper and control for blank audio.
