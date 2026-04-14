@@ -34,28 +34,32 @@ void GgmlMemoryPool :: add(void *ptr, size_t size, bool aligned) {
 	allocations [ptr] = { size, aligned };
 }
 
-void GgmlMemoryPool :: remove(void *ptr) {
+bool GgmlMemoryPool :: remove(void *ptr) {
 	//TRACE
 	if (! ptr) {
 		trace (U"Trying to remove nullptr from allocations)");
-		return;
+		return false;
 	}
 	auto it = allocations.find (ptr);
-	Melder_assert (it != allocations.end ());   // trying to remove an allocation which does not exist
-	allocations .erase (ptr);
+	if (it == allocations.end ())
+		return false;
+	allocations .erase (it);
+	return true;
 }
 
-void GgmlMemoryPool :: remove(void *ptr, size_t size) {
+bool GgmlMemoryPool :: remove(void *ptr, size_t size) {
 	//TRACE
 	if (! ptr) {
 		trace (U"Trying to remove nullptr from allocations)");
-		return;
+		return false;
 	}
 
 	auto it = allocations.find (ptr);
-	Melder_assert (it != allocations.end ());   // trying to remove an allocation which does not exist
+	if (it == allocations.end ())
+		return false;
 	Melder_assert (size == it->second.size);   // otherwise something weird: size does not match
-	allocations .erase (ptr);
+	allocations .erase (it);
+	return true;
 }
 
 void GgmlMemoryPool :: clear() {
@@ -67,9 +71,9 @@ void GgmlMemoryPool :: clear() {
 		trace (U"Emergency freeing: ", allocation_pair.second.size, U" bytes at ", Melder_pointer (allocation_pair.first),
 				allocation_pair.second.aligned ? U", aligned" : U"");
 		if (allocation_pair.second.aligned)
-			ggml_aligned_free (allocation_pair.first, allocation_pair.second.size);
+			ggml_aligned_free (allocation_pair.first, allocation_pair.second.size, false);
 		else
-			ggml_raw_free (allocation_pair.first);
+			ggml_raw_free (allocation_pair.first, false);
 	}
 	trace (U"Allocations cleared");
 	allocations.clear();

@@ -117,7 +117,11 @@ Also, we add GGML_API memory wrappers declaration in `ggml.h` after declaring `g
     GGML_API void * ggml_malloc(size_t size);
     GGML_API void * ggml_calloc(size_t num, size_t size);
     GGML_API void * ggml_realloc(void * ptr, size_t size);
-    GGML_API void ggml_raw_free(void * ptr);
+#ifdef __cplusplus
+    GGML_API void ggml_raw_free(void * ptr, bool toRemoveFromPool = true);
+#else
+    GGML_API void ggml_raw_free(void * ptr, bool toRemoveFromPool);
+#endif
 ```
 
 3.2. ggml.cpp
@@ -130,7 +134,7 @@ Also, we add GGML_API memory wrappers declaration in `ggml.h` after declaring `g
 
 3.2.2. To intercept GGML abortions and throw Melder exception instead, we change the following line in ggml_abort():
 ```
-//abort();   // this is the old line which needs to be changed
+//abort();   // this is the old line which needs to be removed
 Melder_throw (Melder_peek8to32 (message));   // this is the new line
 ```
 
@@ -138,24 +142,23 @@ Melder_throw (Melder_peek8to32 (message));   // this is the new line
 so that all of them except ggml_calloc() do not return NULL, instead calling GGML_ABORT().
 Also, to register the allocations in our GGML memory pool, we add the following to the ggml_aligned_malloc():
 ```
-    if (theGgmlMemoryPool) {
-        Melder_assert (size > 0);
-        theGgmlMemoryPool -> add (aligned_memory, size, true);   // third argument bool aligned = true
-    }
+    theGgmlMemoryPool.add (aligned_memory, size, true);   // third argument bool aligned = true
 ```
 
 and the following to both ggml_malloc() and ggml_calloc():
 ```
-    if (theGgmlMemoryPool) {
-        Melder_assert (size > 0);
-        theGgmlMemoryPool -> add (result, size, false);   // third argument bool aligned = false
-    }
+    theGgmlMemoryPool.add (result, size, false);   // third argument bool aligned = false
 ```
 
-We also add the following to ggml_aligned_free():
+We add one parameter to ggml_aligned_free() and extend this function as follows:
 ```
-    if (theGgmlMemoryPool)
-        theGgmlMemoryPool -> remove (ptr, size);
+void ggml_aligned_free(void * ptr, size_t size, bool toRemoveFromPool) {
+	bool removedFromPool = false;
+	if (toRemoveFromPool)
+		removedFromPool = theGgmlMemoryPool.remove (ptr, size);
+	if (! toRemoveFromPool || removedFromPool) {
+	    ...   // <------------------------- HERE GOES THE OLD CONTENT OF THIS FUNCTION
+	}
 ```
 
 We define these two functions in ggml.cpp:
@@ -168,31 +171,39 @@ void * ggml_realloc(void * ptr, size_t size) {
     if (! result)
         GGML_ABORT("%s: failed to reallocate %6.2f MB\n", __func__, size/(1024.0*1024.0));
 
-    trace (U"Reallocated to new size ", size, U" bytes, old location ", Melder_pointer (ptr), U", new location ", Melder_pointer (result));
-    if (theGgmlMemoryPool) {
-        Melder_assert (size > 0);
-        theGgmlMemoryPool -> remove (ptr);
-        theGgmlMemoryPool -> add (result, size, false);
-    }
+    theGgmlMemoryPool.remove (ptr);
+    theGgmlMemoryPool.add (result, size, false);
     return result;
 }
 
-void ggml_raw_free(void *ptr) {
-    trace (U"Freeing memory at ", Melder_pointer (ptr));
-    if (theGgmlMemoryPool)
-        theGgmlMemoryPool -> remove (ptr);
-
-    free (ptr);
+void ggml_raw_free(void *ptr, bool toRemoveFromPool) {
+	bool removedFromPool = false;
+	if (toRemoveFromPool)
+		removedFromPool = theGgmlMemoryPool.remove (ptr);
+	if (! toRemoveFromPool || removedFromPool)
+		free (ptr);
 }
 ```
 
 We remove `inline static` function specifiers from ggml_malloc() and ggml_calloc()
-and move following three macros definitions to the top, after ggml_abort,
+and move following three macro definitions to the top, after ggml_abort,
 and we change `GGML_FREE` macro from `free(ptr)` to `ggml_raw_free(ptr)`:
 ```
 #define GGML_MALLOC(size)      ggml_malloc(size)
 #define GGML_CALLOC(num, size) ggml_calloc(num, size)
 #define GGML_FREE(ptr)         ggml_raw_free(ptr)   // <------- CHANGE THIS
+```
+
+3.3. ggml-impl.h
+----------------
+We change the declaration of ggml_aligned_free(), adding a default parameter bool toRemoveFromPool = true
+(also added support for C as a dummy, as this function is currently never called from C files)
+```
+#ifdef __cplusplus
+GGML_API void ggml_aligned_free(void * ptr, size_t size, bool toRemoveFromPool = true);
+#else
+GGML_API void ggml_aligned_free(void * ptr, size_t size, bool toRemoveFromPool);
+#endif
 ```
 
 3.4. Find all the occurrences of raw `malloc`/`calloc`/`realloc`/`free` in the following files:

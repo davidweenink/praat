@@ -370,7 +370,11 @@ extern "C" {
     GGML_API void * ggml_malloc(size_t size);
     GGML_API void * ggml_calloc(size_t num, size_t size);
     GGML_API void * ggml_realloc(void * ptr, size_t size);
-    GGML_API void ggml_raw_free(void * ptr);
+#ifdef __cplusplus
+    GGML_API void ggml_raw_free(void * ptr, bool toRemoveFromPool = true);
+#else
+    GGML_API void ggml_raw_free(void * ptr, bool toRemoveFromPool);
+#endif
 
     enum ggml_status {
         GGML_STATUS_ALLOC_FAILED = -2,
