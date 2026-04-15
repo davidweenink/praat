@@ -2,7 +2,7 @@
 #define _SpeechRecognizer_h_
 /* SpeechRecognizer.h
  *
- * Copyright (C) 2025 Anastasia Shchupak
+ * Copyright (C) 2025,2026 Anastasia Shchupak
  *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,9 @@
  */
 
 #include "Sound.h"
+#include <set>
 
+struct structSpeechRecognizer;
 struct whisper_context;
 struct whisper_vad_context;
 struct whisper_vad_segments;
@@ -145,6 +147,7 @@ struct WhisperTranscription {
 	autovector <autovector <WhisperSegment>> speakers;
 };
 
+inline std::set<structSpeechRecognizer *> theLivingSpeechRecognizers;
 #include "SpeechRecognizer_def.h"
 
 /*

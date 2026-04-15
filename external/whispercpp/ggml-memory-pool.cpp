@@ -19,6 +19,8 @@
 #include "ggml-memory-pool.h"
 #include "ggml-impl.h"
 #include "melder.h"
+#include "SpeechRecognizer.h"
+#include "whisper.h"
 
 GgmlMemoryPool theGgmlMemoryPool;
 
@@ -63,22 +65,45 @@ bool GgmlMemoryPool :: remove(void *ptr, size_t size) {
 }
 
 void GgmlMemoryPool :: clear() {
-	//TRACE
+	TRACE
+	trace (U"--- WE ARE IN THE EMERGENCY CLEAN UP ---");
+	trace (U"Number of allocations in the memory pool is  ", n_allocations());
+	trace (U"Total memory in bytes is  ", sizeInBytes());
+	trace (U"Destroying all living SpeechRecognizers...");
+	for (auto & speechRecognizer : theLivingSpeechRecognizers) {
+		if (speechRecognizer -> whisperContext.ptr) {
+			whisper_free (speechRecognizer -> whisperContext.ptr);
+			speechRecognizer -> whisperContext.ptr = nullptr;
+		}
+		trace (U"speechRecognizer destroyed");
+	}
+
+	trace (U"Number of allocations in the memory pool is  ", n_allocations());
+	trace (U"Total memory in bytes is  ", sizeInBytes());
 	trace (U"Clearing allocations...");
 	for (auto & allocation_pair : allocations) {
 		if (! allocation_pair.first)
 			continue;
-		trace (U"Emergency freeing: ", allocation_pair.second.size, U" bytes at ", Melder_pointer (allocation_pair.first),
-				allocation_pair.second.aligned ? U", aligned" : U"");
 		if (allocation_pair.second.aligned)
 			ggml_aligned_free (allocation_pair.first, allocation_pair.second.size, false);
 		else
 			ggml_raw_free (allocation_pair.first, false);
 	}
-	trace (U"Allocations cleared");
 	allocations.clear();
+	trace (U"Allocations cleared");
+	trace (U"Number of allocations in the memory pool is  ", n_allocations());
+	trace (U"Total memory in bytes is  ", sizeInBytes());
 }
 
-size_t GgmlMemoryPool :: size() const {
+size_t GgmlMemoryPool :: n_allocations() const {
 	return allocations.size();
+}
+
+size_t GgmlMemoryPool :: sizeInBytes() const {
+	size_t size = 0;
+	for (auto & allocation_pair : allocations) {
+		if (allocation_pair.first)
+			size += allocation_pair.second.size;
+	}
+	return size;
 }

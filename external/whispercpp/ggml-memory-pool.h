@@ -42,7 +42,8 @@ public:
     bool remove(void *ptr);   // removes allocation after freeing the memory normally by GGML_FREE(), returns true on success (if there was smth to be removed)
     bool remove(void *ptr, size_t size);   // removes allocation after freeing the memory normally by ggml_aligned_free()
     void clear();   // free all registered allocations and clear the pool
-	size_t size() const;
+	size_t n_allocations() const;
+	size_t sizeInBytes() const;
 };
 
 extern GgmlMemoryPool theGgmlMemoryPool;

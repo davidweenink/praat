@@ -51,8 +51,10 @@ extern unsigned int model_ggml_embedding_length;
 autoWhisperContext :: ~autoWhisperContext () {
 	TRACE
 	trace (U"Destroying whisper context at ", Melder_pointer (ptr));
-	whisper_free (ptr);
-	trace (U"GGML memory pool size after whisper_free is ", theGgmlMemoryPool.size());
+	if (ptr)
+		whisper_free (ptr);
+	trace (U"Number of allocations in the memory pool is  ", theGgmlMemoryPool.n_allocations());
+	trace (U"Total memory in bytes is  ", theGgmlMemoryPool.sizeInBytes());
 }
 autoWhisperContext& autoWhisperContext :: operator= (autoWhisperContext&& other) noexcept {
 	if (this != & other) {
@@ -67,7 +69,8 @@ autoWhisperVadContext :: ~autoWhisperVadContext () {
 	TRACE
 	trace (U"Destroying Silero-VAD context at ", Melder_pointer (ptr));
 	whisper_vad_free (ptr);
-	trace (U"GGML memory pool size after whisper_vad_free is ", theGgmlMemoryPool.size());
+	trace (U"Number of allocations in the memory pool is  ", theGgmlMemoryPool.n_allocations());
+	trace (U"Total memory in bytes is  ", theGgmlMemoryPool.sizeInBytes());
 }
 autoWhisperVadContext & autoWhisperVadContext :: operator= (autoWhisperVadContext && other) noexcept {
 	if (this != & other) {
@@ -82,7 +85,6 @@ autoWhisperVadSegments :: ~autoWhisperVadSegments () {
 	TRACE
 	trace (U"Destroying Silero-VAD segments at ", Melder_pointer (ptr));
 	whisper_vad_free_segments (ptr);
-	trace (U"GGML memory pool size after whisper_vad_free_segments is ", theGgmlMemoryPool.size());
 }
 autoWhisperVadSegments & autoWhisperVadSegments :: operator= (autoWhisperVadSegments && other) noexcept {
 	if (this != & other) {
@@ -97,7 +99,8 @@ autoDiarizeContext :: ~autoDiarizeContext () {
 	TRACE
 	trace (U"Destroying diarize context at ", Melder_pointer (ptr));
 	diarize_free (ptr);
-	trace (U"GGML memory pool size after diarize_free is ", theGgmlMemoryPool.size());
+	trace (U"Number of allocations in the memory pool is  ", theGgmlMemoryPool.n_allocations());
+	trace (U"Total memory in bytes is  ", theGgmlMemoryPool.sizeInBytes());
 }
 autoDiarizeContext& autoDiarizeContext :: operator= (autoDiarizeContext&& other) noexcept {
 	if (this != & other) {
@@ -199,6 +202,7 @@ autoSpeechRecognizer SpeechRecognizer_create (conststring32 modelName, conststri
 			Melder_throw (U"Cannot create Whisper context from: ", modelPath, U". Model file not found?");
 
 		my whisperContext = autoWhisperContext (ctx);
+		theLivingSpeechRecognizers.insert (me.get());
 		return me;
 	} catch (MelderError) {
 		theGgmlMemoryPool.clear();
@@ -270,7 +274,6 @@ static void SpeechRecognizer_runWhisper (SpeechRecognizer me, constSound sound,
 		whisper_print_timings(my whisperContext.get());
 	} catch (MelderError) {
 		theGgmlMemoryPool.clear();
-		my whisperContext .ptr = nullptr;
 		Melder_throw (U"Whisper run out of memory. SpeechRecognizer objects are no longer usable and must be recreated.");
 	}
 }
