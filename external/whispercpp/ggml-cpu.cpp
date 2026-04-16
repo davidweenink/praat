@@ -372,7 +372,7 @@ struct ggml_state {
     struct ggml_numa_nodes numa;
 };
 
-static struct ggml_state g_state = {0};
+static struct ggml_state g_state {};
 
 void ggml_barrier(struct ggml_threadpool * tp) {
     int n_threads = atomic_load_explicit(&tp->n_graph, memory_order_relaxed) & GGML_THREADPOOL_N_THREADS_MASK;
@@ -572,7 +572,7 @@ struct ggml_tensor * ggml_set_i32 (struct ggml_tensor * tensor, int32_t value) {
     const int nc    = tensor->ne[0];
     const size_t n1 = tensor->nb[1];
 
-    char * const data = tensor->data;
+    char * const data = (char *) tensor->data;
 
     switch (tensor->type) {
         case GGML_TYPE_I8:
@@ -631,7 +631,7 @@ struct ggml_tensor * ggml_set_f32(struct ggml_tensor * tensor, float value) {
     const int nc    = tensor->ne[0];
     const size_t n1 = tensor->nb[1];
 
-    char * const data = tensor->data;
+    char * const data = (char *) tensor->data;
 
     switch (tensor->type) {
         case GGML_TYPE_I8:
@@ -1116,7 +1116,7 @@ UseGgmlGemm1:;
 #endif
 
     if (src1->type != vec_dot_type) {
-        char * wdata = params->wdata;
+        char * wdata = (char *) params->wdata;
 
         const size_t nbw0 = ggml_type_size(vec_dot_type);
         const size_t nbw1 = ggml_row_size(vec_dot_type, ne10);
@@ -1368,18 +1368,18 @@ static void ggml_compute_forward_mul_mat_id(
     }
 
     int64_t * matrix_row_counts = // [n_as]
-        incr_ptr_aligned(&wdata_cur, n_as*sizeof(int64_t), sizeof(int64_t));
+        (int64_t *) incr_ptr_aligned(&wdata_cur, n_as*sizeof(int64_t), sizeof(int64_t));
 
     struct mmid_row_mapping * matrix_rows = // [n_as][ids->ne[0]*ids->ne[1]]
-        incr_ptr_aligned(&wdata_cur, n_as*ids->ne[0]*ids->ne[1]*sizeof(struct mmid_row_mapping), sizeof(int64_t));
+        (struct mmid_row_mapping *) incr_ptr_aligned(&wdata_cur, n_as*ids->ne[0]*ids->ne[1]*sizeof(struct mmid_row_mapping), sizeof(int64_t));
 
     char (*atomic_current_chunk)[CACHE_LINE_SIZE] = // [n_as]
-        incr_ptr_aligned(&wdata_cur, CACHE_LINE_SIZE * n_as, CACHE_LINE_SIZE);
+        (char (*)[CACHE_LINE_SIZE]) incr_ptr_aligned(&wdata_cur, CACHE_LINE_SIZE * n_as, CACHE_LINE_SIZE);
 
     GGML_ASSERT(params->wsize >= (size_t)((char *) wdata_cur - (char *) params->wdata));
 
     if (src1->type != vec_dot_type) {
-        char * wdata = params->wdata;
+        char * wdata = (char *) params->wdata;
 
         const size_t nbw0 = ggml_type_size(vec_dot_type);
         const size_t nbw1 = ggml_row_size(vec_dot_type, ne10);
@@ -1426,7 +1426,7 @@ static void ggml_compute_forward_mul_mat_id(
 
                 assert(i02 >= 0 && i02 < n_as);
 
-                MMID_MATRIX_ROW(i02, matrix_row_counts[i02]) = (struct mmid_row_mapping) {id, iid1};
+                MMID_MATRIX_ROW(i02, matrix_row_counts[i02]) = (struct mmid_row_mapping) {id, (int32_t) iid1};
                 matrix_row_counts[i02] += 1;
             }
         }
@@ -2767,7 +2767,7 @@ static thread_ret_t ggml_graph_compute_thread(void * data) {
 
     struct ggml_compute_params params = {
         /*.ith        =*/ state->ith,
-        /*.nth        =*/ atomic_load_explicit(&tp->n_graph, memory_order_relaxed) & GGML_THREADPOOL_N_THREADS_MASK,
+        /*.nth        =*/ (int) (atomic_load_explicit(&tp->n_graph, memory_order_relaxed) & GGML_THREADPOOL_N_THREADS_MASK),
         /*.wsize      =*/ cplan->work_size,
         /*.wdata      =*/ cplan->work_data,
         /*.threadpool =*/ tp,
@@ -2960,7 +2960,7 @@ static struct ggml_threadpool * ggml_threadpool_new_impl(
                 struct ggml_cplan * cplan) {
 
     struct ggml_threadpool * threadpool =
-        ggml_aligned_malloc(sizeof(struct ggml_threadpool));
+        (struct ggml_threadpool *) ggml_aligned_malloc(sizeof(struct ggml_threadpool));
     {
         threadpool->cgraph           = cgraph;
         threadpool->cplan            = cplan;
@@ -2980,7 +2980,7 @@ static struct ggml_threadpool * ggml_threadpool_new_impl(
 
     // Allocate and init workers state
     const size_t workers_size = sizeof(struct ggml_compute_state) * tpp->n_threads;
-    struct ggml_compute_state * workers = ggml_aligned_malloc(workers_size);
+    struct ggml_compute_state * workers = (struct ggml_compute_state *) ggml_aligned_malloc(workers_size);
 
     memset(workers, 0, workers_size);
     for (int j = 0; j < tpp->n_threads; j++) {
@@ -3512,7 +3512,7 @@ void ggml_cpu_init(void) {
                 union {
                     uint16_t u16;
                     ggml_fp16_t fp16;
-                } u = {i};
+                } u = { (uint16_t) i };
                 float f = GGML_COMPUTE_FP16_TO_FP32(u.fp16);
                 ggml_table_f32_f16[i] = f;
                 ggml_table_gelu_f16[i] = GGML_CPU_FP32_TO_FP16(ggml_gelu_f32(f));

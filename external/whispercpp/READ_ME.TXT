@@ -338,9 +338,82 @@ with
 	#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 ```
 
-4. Models
+4. General compatibility with C++
+---------------------------------
+4.1. Assigning from `void *`
+----------------------------
+This is ruled out in C++, so we cast according to the following examples:
+```
+	galloc->node_allocs = ggml_calloc(graph->n_nodes, sizeof(struct node_alloc));   // C
+	galloc->node_allocs = (struct node_alloc *) ggml_calloc(graph->n_nodes, sizeof(struct node_alloc));   // C++
+
+	result->vals = GGML_CALLOC(result->set.size, sizeof(struct ggml_tensor *));   // C
+	result->vals = (struct ggml_tensor **) GGML_CALLOC(result->set.size, sizeof(struct ggml_tensor *));   // C++
+
+	char * const data = tensor->data;   // C
+	char * const data = (char *) tensor->data;   // C++
+
+	const float * l = left;   // C
+	const float * l = (const float *) left;   // C++
+
+	quantize_row_q2_K_ref(src, dst, (int64_t)nrow*n_per_row);   // C
+	quantize_row_q2_K_ref(src, (block_q2_K *) dst, (int64_t)nrow*n_per_row);   // C++
+
+	char (*atomic_current_chunk)[CACHE_LINE_SIZE] = blabla   // C
+	char (*atomic_current_chunk)[CACHE_LINE_SIZE] = (char (*)[CACHE_LINE_SIZE]) blabla   // C++
+```
+
+4.2. Assigning int to enum
+--------------------------
+This is also ruled out in C++, so we cast according to the following examples:
+```
+	const enum ggml_op_pool op = ggml_get_op_params_i32(tensor, 0);
+	const enum ggml_op_pool op = (enum ggml_op_pool) ggml_get_op_params_i32(tensor, 0);
+
+	p->prio = 0;   // C
+	p->prio = (enum ggml_sched_priority) 0;   // C++
+
+	static struct ggml_state g_state = {0};   // C
+	static struct ggml_state g_state {};   // C++
+```
+
+4.3. Assignments in initializer lists
+-------------------------------------
+Types have to match more closely in C++, so we cast according to the following examples:
+```
+	*cgraph = (struct ggml_cgraph) { size, ...   // C
+	*cgraph = (struct ggml_cgraph) { (int) size, ...   // C++
+
+	int32_t params[] = { nb1, nb2, nb3, offset, inplace ? 1 : 0 };   // C
+	int32_t params[] = { (int32_t) nb1, (int32_t) nb2, (int32_t) nb3, (int32_t) offset, inplace ? 1 : 0 };   // C++
+
+	MMID_MATRIX_ROW(i02, matrix_row_counts[i02]) = (struct mmid_row_mapping) {id, iid1};   // C
+	MMID_MATRIX_ROW(i02, matrix_row_counts[i02]) = (struct mmid_row_mapping) {id, (int32_t) iid1};   // C++
+
+	union { uint16_t u16; ggml_fp16_t fp16; } u = {i};   // C
+	union { uint16_t u16; ggml_fp16_t fp16; } u = { (uint16_t) i };   // C++
+
+    struct ggml_compute_params params = {
+        /*.ith        =*/ state->ith,
+        /*.nth        =*/ atomic_load_explicit(&tp->n_graph, memory_order_relaxed) & GGML_THREADPOOL_N_THREADS_MASK,
+        /*.wsize      =*/ cplan->work_size,
+        /*.wdata      =*/ cplan->work_data,
+        /*.threadpool =*/ tp,
+        /*.use_ref    =*/ cplan->use_ref,
+    };   // C
+    struct ggml_compute_params params = {
+        /*.ith        =*/ state->ith,
+        /*.nth        =*/ (int) (atomic_load_explicit(&tp->n_graph, memory_order_relaxed) & GGML_THREADPOOL_N_THREADS_MASK),
+        /*.wsize      =*/ cplan->work_size,
+        /*.wdata      =*/ cplan->work_data,
+        /*.threadpool =*/ tp,
+        /*.use_ref    =*/ cplan->use_ref,
+    };   // C++
+```
+
+5. Models
 ---------
-4.1. Bringing Silero-VAD model to Praat source code
+5.1. Bringing Silero-VAD model to Praat source code
 ---------------------------------------------------
 First, we download the ggml Silero model from the original whisper.cpp repository:
 ```
@@ -353,10 +426,10 @@ We then convert this binary to a C header using `xxd` and copy it to external/wh
 xxd -i -n ggml_silero_bin -n whisper.cpp/models/ggml-silero-v6.2.0.bin > praat/external/whispercpp/ggml-silero-vad-model-data.h
 ```
 
-4.2. Segmentation
+5.2. Segmentation
 -----------------
 todo
 
-4.3. Embedding
+5.3. Embedding
 --------------
 todo

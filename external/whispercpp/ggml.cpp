@@ -604,7 +604,7 @@ static wchar_t * ggml_mbstowcs(const char * mbs) {
         return NULL;
     }
 
-    wchar_t * wbuf = GGML_MALLOC(wlen * sizeof(wchar_t));
+    wchar_t * wbuf = (wchar_t *) GGML_MALLOC(wlen * sizeof(wchar_t));
     wlen = MultiByteToWideChar(CP_UTF8, 0, mbs, -1, wbuf, wlen);
     if (!wlen) {
         GGML_FREE(wbuf);
@@ -624,7 +624,7 @@ FILE * ggml_fopen(const char * fname, const char * mode) {
     wchar_t * wfname = ggml_mbstowcs(fname);
     if (wfname) {
         // convert mode (ANSI)
-        wchar_t * wmode = GGML_MALLOC((strlen(mode) + 1) * sizeof(wchar_t));
+        wchar_t * wmode = (wchar_t *) GGML_MALLOC((strlen(mode) + 1) * sizeof(wchar_t));
         wchar_t * wmode_p = wmode;
         do {
             *wmode_p++ = (wchar_t)*mode;
@@ -1292,7 +1292,7 @@ struct ggml_context * ggml_init(struct ggml_init_params params) {
 
     ggml_critical_section_end();
 
-    struct ggml_context * ctx = GGML_MALLOC(sizeof(struct ggml_context));
+    struct ggml_context * ctx = (struct ggml_context *) GGML_MALLOC(sizeof(struct ggml_context));
 
     // allow to call ggml_init with 0 size
     if (params.mem_size == 0) {
@@ -1387,7 +1387,7 @@ static struct ggml_object * ggml_new_object(struct ggml_context * ctx, enum ggml
     GGML_ASSERT(size <= SIZE_MAX - (GGML_MEM_ALIGN - 1));
     size_t size_needed = GGML_PAD(size, GGML_MEM_ALIGN);
 
-    char * const mem_buffer = ctx->mem_buffer;
+    char * const mem_buffer = (char *) ctx->mem_buffer;
     struct ggml_object * const obj_new = (struct ggml_object *)(mem_buffer + cur_end);
 
     // integer overflow checks
@@ -1646,7 +1646,7 @@ struct ggml_tensor * ggml_view_tensor(
 struct ggml_tensor * ggml_get_first_tensor(const struct ggml_context * ctx) {
     struct ggml_object * obj = ctx->objects_begin;
 
-    char * const mem_buffer = ctx->mem_buffer;
+    char * const mem_buffer = (char *) ctx->mem_buffer;
 
     while (obj != NULL) {
         if (obj->type == GGML_OBJECT_TYPE_TENSOR) {
@@ -1663,7 +1663,7 @@ struct ggml_tensor * ggml_get_next_tensor(const struct ggml_context * ctx, struc
     struct ggml_object * obj = (struct ggml_object *) ((char *)tensor - GGML_OBJECT_SIZE);
     obj = obj->next;
 
-    char * const mem_buffer = ctx->mem_buffer;
+    char * const mem_buffer = (char *) ctx->mem_buffer;
 
     while (obj != NULL) {
         if (obj->type == GGML_OBJECT_TYPE_TENSOR) {
@@ -1679,7 +1679,7 @@ struct ggml_tensor * ggml_get_next_tensor(const struct ggml_context * ctx, struc
 struct ggml_tensor * ggml_get_tensor(struct ggml_context * ctx, const char * name) {
     struct ggml_object * obj = ctx->objects_begin;
 
-    char * const mem_buffer = ctx->mem_buffer;
+    char * const mem_buffer = (char *) ctx->mem_buffer;
 
     while (obj != NULL) {
         if (obj->type == GGML_OBJECT_TYPE_TENSOR) {
@@ -1860,7 +1860,7 @@ static struct ggml_tensor * ggml_acc_impl(
 
     struct ggml_tensor * result = inplace ? ggml_view_tensor(ctx, a) : ggml_dup_tensor(ctx, a);
 
-    int32_t params[] = { nb1, nb2, nb3, offset, inplace ? 1 : 0 };
+	int32_t params[] = { (int32_t) nb1, (int32_t) nb2, (int32_t) nb3, (int32_t) offset, inplace ? 1 : 0 };
     ggml_set_op_params(result, params, sizeof(params));
 
     result->op     = GGML_OP_ACC;
@@ -3109,7 +3109,7 @@ static struct ggml_tensor * ggml_set_impl(
     struct ggml_tensor * result = inplace ? ggml_view_tensor(ctx, a) : ggml_dup_tensor(ctx, a);
 
     GGML_ASSERT(offset < (size_t)(1 << 30));
-    int32_t params[] = { nb1, nb2, nb3, offset, inplace ? 1 : 0 };
+    int32_t params[] = { (int32_t) nb1, (int32_t) nb2, (int32_t) nb3, (int32_t) offset, inplace ? 1 : 0 };
     ggml_set_op_params(result, params, sizeof(params));
 
     result->op     = GGML_OP_SET;
@@ -4649,7 +4649,7 @@ struct ggml_tensor * ggml_pool_2d(
 
     result = ggml_new_tensor(ctx, GGML_TYPE_F32, 4, ne);
 
-    int32_t params[] = { op, k0, k1, s0, s1, p0, p1 };
+    int32_t params[] = { op, k0, k1, s0, s1, (int32_t) p0, (int32_t) p1 };
     ggml_set_op_params(result, params, sizeof(params));
 
     result->op     = GGML_OP_POOL_2D;
@@ -4672,7 +4672,7 @@ struct ggml_tensor * ggml_pool_2d_back(
     struct ggml_tensor * result;
     result = ggml_new_tensor(ctx, GGML_TYPE_F32, 4, af->ne);
 
-    int32_t params[] = { op, k0, k1, s0, s1, p0, p1 };
+    int32_t params[] = { op, k0, k1, s0, s1, (int32_t) p0, (int32_t) p1 };
     ggml_set_op_params(result, params, sizeof(params));
 
     result->op     = GGML_OP_POOL_2D_BACK;
@@ -5880,8 +5880,8 @@ struct ggml_hash_set ggml_hash_set_new(size_t size) {
     size = ggml_hash_size(size);
     struct ggml_hash_set result;
     result.size = size;
-    result.keys = GGML_MALLOC(sizeof(struct ggml_tensor *) * size);
-    result.used = GGML_CALLOC(ggml_bitset_size(size), sizeof(ggml_bitset_t));
+    result.keys = (struct ggml_tensor **) GGML_MALLOC(sizeof(struct ggml_tensor *) * size);
+    result.used = (ggml_bitset_t *) GGML_CALLOC(ggml_bitset_size(size), sizeof(ggml_bitset_t));
     return result;
 }
 
@@ -5926,9 +5926,9 @@ struct hash_map {
 };
 
 static struct hash_map * ggml_new_hash_map(size_t size) {
-    struct hash_map * result = GGML_MALLOC(sizeof(struct hash_map));
+    struct hash_map * result = (struct hash_map *) GGML_MALLOC(sizeof(struct hash_map));
     result->set = ggml_hash_set_new(size);
-    result->vals = GGML_CALLOC(result->set.size, sizeof(struct ggml_tensor *));
+    result->vals = (struct ggml_tensor **) GGML_CALLOC(result->set.size, sizeof(struct ggml_tensor *));
     return result;
 }
 
@@ -6400,7 +6400,7 @@ static void ggml_compute_backward(
         } break;
         case GGML_OP_POOL_2D: {
             if (src0_needs_grads) {
-                const enum ggml_op_pool op = ggml_get_op_params_i32(tensor, 0);
+                const enum ggml_op_pool op = (enum ggml_op_pool) ggml_get_op_params_i32(tensor, 0);
                 const      int32_t      k0 = ggml_get_op_params_i32(tensor, 1);
                 const      int32_t      k1 = ggml_get_op_params_i32(tensor, 2);
                 const      int32_t      s0 = ggml_get_op_params_i32(tensor, 3);
@@ -6616,7 +6616,7 @@ void ggml_build_backward_expand(
 
     memset(cgraph->grads,     0, cgraph->visited_hash_set.size*sizeof(struct ggml_tensor *));
     memset(cgraph->grad_accs, 0, cgraph->visited_hash_set.size*sizeof(struct ggml_tensor *));
-    bool * grads_needed = GGML_CALLOC(cgraph->visited_hash_set.size, sizeof(bool));
+    bool * grads_needed = (bool *) GGML_CALLOC(cgraph->visited_hash_set.size, sizeof(bool));
 
     {
         bool any_params = false;
@@ -6746,20 +6746,20 @@ struct ggml_cgraph * ggml_new_graph_custom(struct ggml_context * ctx, size_t siz
 
     void * p = cgraph + 1;
 
-    struct ggml_tensor ** nodes_ptr      =         incr_ptr_aligned(&p, size      * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *));
-    struct ggml_tensor ** leafs_ptr      =         incr_ptr_aligned(&p, size      * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *));
-    int32_t             * use_counts_ptr =         incr_ptr_aligned(&p, hash_size * sizeof(int32_t), sizeof(int32_t));
-    struct ggml_tensor ** hash_keys_ptr  =         incr_ptr_aligned(&p, hash_size * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *));
-    struct ggml_tensor ** grads_ptr      = grads ? incr_ptr_aligned(&p, hash_size * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *)) : NULL;
-    struct ggml_tensor ** grad_accs_ptr  = grads ? incr_ptr_aligned(&p, hash_size * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *)) : NULL;
+    struct ggml_tensor ** nodes_ptr      =         (struct ggml_tensor **) incr_ptr_aligned(&p, size      * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *));
+    struct ggml_tensor ** leafs_ptr      =         (struct ggml_tensor **) incr_ptr_aligned(&p, size      * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *));
+    int32_t             * use_counts_ptr =         (int32_t *)             incr_ptr_aligned(&p, hash_size * sizeof(int32_t), sizeof(int32_t));
+    struct ggml_tensor ** hash_keys_ptr  =         (struct ggml_tensor **) incr_ptr_aligned(&p, hash_size * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *));
+    struct ggml_tensor ** grads_ptr      = grads ? (struct ggml_tensor **) incr_ptr_aligned(&p, hash_size * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *)) : NULL;
+    struct ggml_tensor ** grad_accs_ptr  = grads ? (struct ggml_tensor **) incr_ptr_aligned(&p, hash_size * sizeof(struct ggml_tensor *), sizeof(struct ggml_tensor *)) : NULL;
 
-    ggml_bitset_t * hash_used = incr_ptr_aligned(&p, ggml_bitset_size(hash_size) * sizeof(ggml_bitset_t), sizeof(ggml_bitset_t));
+    ggml_bitset_t * hash_used = (ggml_bitset_t *) incr_ptr_aligned(&p, ggml_bitset_size(hash_size) * sizeof(ggml_bitset_t), sizeof(ggml_bitset_t));
 
     // check that we allocated the correct amount of memory
     assert(obj_size == (size_t)((char *)p - (char *)cgraph));
 
     *cgraph = (struct ggml_cgraph) {
-        /*.size         =*/ size,
+        /*.size         =*/ (int) size,
         /*.n_nodes      =*/ 0,
         /*.n_leafs      =*/ 0,
         /*.nodes        =*/ nodes_ptr,
@@ -7395,7 +7395,7 @@ void ggml_log_set(ggml_log_callback log_callback, void * user_data) {
 
 void ggml_threadpool_params_init(struct ggml_threadpool_params * p, int n_threads) {
     p->n_threads  = n_threads;
-    p->prio       = 0;     // default priority (usually means normal or inherited)
+    p->prio       = (enum ggml_sched_priority) 0;     // default priority (usually means normal or inherited)
     p->poll       = 50;    // hybrid-polling enabled
     p->strict_cpu = false; // no strict placement (all threads share same cpumask)
     p->paused     = false; // threads are ready to go

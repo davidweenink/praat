@@ -159,7 +159,7 @@ static int ggml_dyn_tallocr_new_chunk(struct ggml_dyn_tallocr * alloc, size_t mi
     if (alloc->n_chunks >= GGML_VBUFFER_MAX_CHUNKS) {
         return -1;
     }
-    struct tallocr_chunk * chunk = ggml_calloc(1, sizeof(struct tallocr_chunk));
+    struct tallocr_chunk * chunk = (struct tallocr_chunk *) ggml_calloc(1, sizeof(struct tallocr_chunk));
     chunk->n_free_blocks = 1;
     chunk->free_blocks[0].offset = 0;
     // available space in a chunk is limited to max_chunk_size, but can be higher if:
@@ -497,13 +497,13 @@ ggml_gallocr_t ggml_gallocr_new_n(ggml_backend_buffer_type_t * bufts, int n_bufs
     ggml_gallocr_t galloc = (ggml_gallocr_t)ggml_calloc(1, sizeof(struct ggml_gallocr));
     GGML_ASSERT(galloc != NULL);
 
-    galloc->bufts = ggml_calloc(n_bufs, sizeof(ggml_backend_buffer_type_t));
+    galloc->bufts = (ggml_backend_buffer_type_t *) ggml_calloc(n_bufs, sizeof(ggml_backend_buffer_type_t));
     GGML_ASSERT(galloc->bufts != NULL);
 
-    galloc->buffers = ggml_calloc(n_bufs, sizeof(struct vbuffer *));
+    galloc->buffers = (struct vbuffer **) ggml_calloc(n_bufs, sizeof(struct vbuffer *));
     GGML_ASSERT(galloc->buffers != NULL);
 
-    galloc->buf_tallocs = ggml_calloc(n_bufs, sizeof(struct ggml_dyn_tallocr *));
+    galloc->buf_tallocs = (struct ggml_dyn_tallocr **) ggml_calloc(n_bufs, sizeof(struct ggml_dyn_tallocr *));
     GGML_ASSERT(galloc->buf_tallocs != NULL);
 
     for (int i = 0; i < n_bufs; i++) {
@@ -833,7 +833,7 @@ static bool ggml_gallocr_reserve_n_impl(
         GGML_ASSERT(galloc->hash_set.keys != NULL);
 
         ggml_raw_free(galloc->hash_values);
-        galloc->hash_values = ggml_malloc(sizeof(struct hash_node) * galloc->hash_set.size);
+        galloc->hash_values = (struct hash_node *) ggml_malloc(sizeof(struct hash_node) * galloc->hash_set.size);
         GGML_ASSERT(galloc->hash_values != NULL);
     }
 
@@ -848,7 +848,7 @@ static bool ggml_gallocr_reserve_n_impl(
     // set the node_allocs from the hash table
     if (galloc->n_nodes < graph->n_nodes) {
         ggml_raw_free(galloc->node_allocs);
-        galloc->node_allocs = ggml_calloc(graph->n_nodes, sizeof(struct node_alloc));
+        galloc->node_allocs = (struct node_alloc *) ggml_calloc(graph->n_nodes, sizeof(struct node_alloc));
         GGML_ASSERT(galloc->node_allocs != NULL);
     }
     galloc->n_nodes = graph->n_nodes;
@@ -881,7 +881,7 @@ static bool ggml_gallocr_reserve_n_impl(
     }
     if (galloc->n_leafs < graph->n_leafs) {
         ggml_raw_free(galloc->leaf_allocs);
-        galloc->leaf_allocs = ggml_calloc(graph->n_leafs, sizeof(galloc->leaf_allocs[0]));
+        galloc->leaf_allocs = (struct leaf_alloc *) ggml_calloc(graph->n_leafs, sizeof(galloc->leaf_allocs[0]));
         GGML_ASSERT(galloc->leaf_allocs != NULL);
     }
     galloc->n_leafs = graph->n_leafs;
@@ -1134,7 +1134,7 @@ static bool alloc_tensor_range(struct ggml_context * ctx,
         return false;
     }
 
-    *buffers = ggml_realloc(*buffers, sizeof(ggml_backend_buffer_t) * (*n_buffers + 1));
+    *buffers = (ggml_backend_buffer_t *) ggml_realloc(*buffers, sizeof(ggml_backend_buffer_t) * (*n_buffers + 1));
     (*buffers)[(*n_buffers)++] = buffer;
 
     struct ggml_tallocr tallocr = ggml_tallocr_new(buffer);
