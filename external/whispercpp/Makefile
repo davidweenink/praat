@@ -3,10 +3,14 @@
 
 include ../../makefile.defs
 
+CPPFLAGS = -I ../../melder -I ../../fon -I ../../sys -fpermissive
+
 WHISPER_AND_GGML_OBJECTS = \
 	whisper.o \
 	diarize.o \
 	ggml.o \
+	ggml-type-traits.o \
+	ggml-memory-pool.o \
 	ggml-backend.o \
 	ggml-backend-dl.o \
 	ggml-backend-reg.o \
