@@ -3,7 +3,7 @@
 
 include ../../makefile.defs
 
-CPPFLAGS = -I ../../melder -I ../../fon -I ../../sys -fpermissive -Wno-narrowing -Wno-shadow
+CPPFLAGS = -I ../../melder -I ../../fon -I ../../sys -fpermissive
 
 WHISPER_AND_GGML_OBJECTS = \
 	whisper.o \

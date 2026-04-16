@@ -65,7 +65,7 @@ bool GgmlMemoryPool :: remove(void *ptr, size_t size) {
 }
 
 void GgmlMemoryPool :: clear() {
-	TRACE
+	//TRACE
 	trace (U"--- WE ARE IN THE EMERGENCY CLEAN UP ---");
 	trace (U"Number of allocations in the memory pool is  ", n_allocations());
 	trace (U"Total memory in bytes is  ", sizeInBytes());
@@ -107,3 +107,5 @@ size_t GgmlMemoryPool :: sizeInBytes() const {
 	}
 	return size;
 }
+
+/* End of file ggml-memory-pool.cpp */

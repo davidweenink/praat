@@ -29,7 +29,7 @@ oo_DEFINE_CLASS (SpeechRecognizer, Daata)
 	#endif
 
 	#if oo_DESTROYING
-		theLivingSpeechRecognizers.erase (this);
+		theLivingSpeechRecognizers.erase (this);   // undangle
 	#endif
 
 oo_END_CLASS (SpeechRecognizer)

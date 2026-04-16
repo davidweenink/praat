@@ -321,6 +321,8 @@ void ggml_log_callback_default(enum ggml_log_level level, const char * text, voi
 
 
 void * ggml_aligned_malloc(size_t size) {
+	//TRACE
+	trace(size);
     if (size == 0)
         GGML_ABORT("Behavior may be unexpected when allocating 0 bytes for ggml_aligned_malloc!\n");
 
@@ -406,6 +408,9 @@ void ggml_aligned_free(void * ptr, size_t size, bool toRemoveFromPool) {
 }
 
 void * ggml_malloc(size_t size) {
+	//TRACE
+	trace(size);
+
     if (size == 0)
         GGML_ABORT("Behavior may be unexpected when allocating 0 bytes for ggml_malloc!\n");
 

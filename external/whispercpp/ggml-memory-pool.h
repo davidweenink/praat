@@ -21,9 +21,11 @@
 /*
 * A memory tracking pool for GGML memory allocations within Praat.
  *
- * All memory allocations by GGML are added to this pool. If an allocation fails, instead of abort
+ * All memory allocations by malloc, calloc, realloc, _aligned_malloc, hbw_posix_memalign, vm_allocate
+ * made in GGML are added to this pool. If an allocation fails, instead of abort
  * (which causes Praat to crash), we will free all the memory registered in the pool. This will allow
- * Praat to continue running after a graceful end of whatever was using GGML: transcription or diarizarion.
+ * Praat to continue running after a graceful end of whatever was using GGML:
+ * transcription, speech activity detection, or diarizarion.
  */
 
 #include <unordered_map>
