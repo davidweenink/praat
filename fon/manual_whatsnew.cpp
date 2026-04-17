@@ -29,6 +29,9 @@ R"~~~(
 
 Latest changes in Praat.
 
+##6.4.64# (17 April 2026)
+• Many small improvements and bug repairs in speech recognition, including automatic alignment and diarization.
+
 ##6.4.63# (4 April 2026)
 • Speaker diarization in ##Transcribe interval# (if Whisper models installed).
 • Mac: Command-mousewheel zooming (as on Windows).

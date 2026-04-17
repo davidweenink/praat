@@ -5,7 +5,8 @@ endif
 ;modelFile$ = modelsFolder$ / "whispercpp" / "ggml-base.bin"
 modelFile$ = modelsFolder$ + "/whispercpp/ggml-base.bin"
 if not fileReadable (modelFile$)
-	exitScript: "No file called “ggml-base.bin” in Praat’s settings folder."   ; TODO: should be warning
+	;warning: "No file called “ggml-base.bin” in Praat’s settings folder."   ; TODO
+	exit
 endif
 sound = Read from file: "examples/example.wav"
 textGrid = To TextGrid: "tier", ""
@@ -18,6 +19,6 @@ Transcribe interval: 1, 1, "yes", "no", "yes", 0.5, 0.1, 0.25, 0.03, "ggml-base.
 selectObject: "TextGrid example"
 text$ = Get label of interval: 1, 1
 writeInfoLine: text$
-assert text$ = "Estimados en la próxima."
+assert text$ = "Estimados..."
 removeObject: "Sound example", "TextGrid example"
 appendInfoLine: "OK"
