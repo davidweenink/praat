@@ -16,9 +16,9 @@
  * along with this work. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "melder.h"   // include early, so that size_t is defined
 #include "ggml-memory-pool.h"
 #include "ggml-impl.h"
-#include "melder.h"
 #include "SpeechRecognizer.h"
 #include "whisper.h"
 
