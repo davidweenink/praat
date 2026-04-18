@@ -535,6 +535,8 @@ WhisperTranscription SpeechRecognizer_recognize (SpeechRecognizer me, constSound
 		/*
 			Then, collect tokens from each segment, inserting silences between VAD segments.
 		*/
+		std::string partialTokenText;
+		double partialTokenTmax;
 		int current_vad_segment = 1;
 		for (int i = 0; i < n_segments; ++ i) {
 			for (int j = 0; j < whisper_full_n_tokens (my whisperContext.get(), i); ++ j) {
@@ -544,10 +546,19 @@ WhisperTranscription SpeechRecognizer_recognize (SpeechRecognizer me, constSound
 					continue;   // skip special tokens
 				}
 
-				autostring32 raw_token_text = Melder_8to32 (whisper_full_get_token_text (my whisperContext.get(), i, j));
+				partialTokenText += whisper_full_get_token_text (my whisperContext.get(), i, j);
+				partialTokenTmax = token_data.t_dtw / 100.0;
+
+				if (! Melder_str8IsValidUtf8 (partialTokenText.c_str()))
+					continue;   // continue accumulating token texts until partialTokenText is a proper UTF8 string
+
+				/*
+					Now partialTokenText is valid UTF8.
+				*/
+				autostring32 raw_token_text = Melder_8to32 (partialTokenText.c_str());
 				conststring32 token_text = raw_token_text.get();
 				integer length_token_text = Melder_length (token_text);
-				double tmax = token_data.t_dtw / 100.0;
+				double tmax = partialTokenTmax;
 				bool isPunctuation = length_token_text == 1 && endsWithPunctuation (token_text);
 
 				/*
@@ -587,6 +598,8 @@ WhisperTranscription SpeechRecognizer_recognize (SpeechRecognizer me, constSound
 				trace (U"Segment ", i, U"; VAD segment ", current_vad_segment,
 						U"; token ", allTokens.size, U": text = ", token -> text.get(),
 						U", tmax = ", token -> tmax);
+
+				partialTokenText.clear();
 			}
 		}
 
