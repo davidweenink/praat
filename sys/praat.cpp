@@ -976,7 +976,7 @@ void praat_dontUsePictureWindow () { praatP.dontUsePictureWindow = true; }
 			buffer = (char *) malloc ((size_t) actualSize);
 			AEGetParamPtr (theAppleEvent, 1, typeUTF8Text, nullptr, & buffer [0], actualSize, nullptr);
 			if (theUserMessageCallback) {
-				autostring32 buffer32 = Melder_8to32 (buffer);
+				autostring32 buffer32 = Melder_8to32_e (buffer);
 				theUserMessageCallback (buffer32.get());
 			}
 			free (buffer);
@@ -1168,7 +1168,7 @@ static bool tryToSwitchToRunningPraat (bool foundTheOpenOption, bool foundTheSen
 		*/
 		NSRunningApplication *currentPraat = [NSRunningApplication currentApplication];
 		NSString *currentBundleIdentifier = [currentPraat bundleIdentifier];   // for instance @"org.praat.Praat"
-		trace (U"Current bundle identifier: ", Melder_peek8to32 ([currentBundleIdentifier UTF8String]));
+		trace (U"Current bundle identifier: ", Melder_peek8to32_u ([currentBundleIdentifier UTF8String]));
 		NSArray<NSRunningApplication *> *list = [NSRunningApplication runningApplicationsWithBundleIdentifier: currentBundleIdentifier];
 		NSRunningApplication *runningPraat = nullptr;
 		const integer numberOfPraats = uinteger_to_integer_a ([list count]);
@@ -1263,7 +1263,7 @@ static bool tryToSwitchToRunningPraat (bool foundTheOpenOption, bool foundTheSen
 		for (integer iarg = praatP.argumentNumber; iarg < praatP.argc; iarg ++) {   // do not change praatP.argumentNumber itself (we might return false)
 			TRACE
 			structMelderFile file { };
-			Melder_relativePathToFile (Melder_peek8to32 (praatP.argv [iarg]), & file);
+			Melder_relativePathToFile (Melder_peek8to32_u (praatP.argv [iarg]), & file);
 			conststring32 absolutePath = MelderFile_peekPath (& file);
 			MelderString_append (& text32, U"Read from file... ", absolutePath, U"\n");
 			trace (U"Argument ", iarg, U": will open path ", absolutePath);
@@ -1284,7 +1284,7 @@ static bool tryToSwitchToRunningPraat (bool foundTheOpenOption, bool foundTheSen
 		//TRACE
 		trace (U"--send ", absolutePath);
 		for (integer iarg = praatP.argumentNumber; iarg < praatP.argc; iarg ++)   // do not change praatP.argumentNumber itself (we might return false)
-			MelderString_append (& text32, U", ", quote_doubleSTR (Melder_peek8to32 (praatP.argv [iarg])).get());
+			MelderString_append (& text32, U", ", quote_doubleSTR (Melder_peek8to32_u (praatP.argv [iarg])).get());
 	} else if (foundTheSendOrFormOption) {
 		/*
 			praat --send-or-form [OPTION]... SCRIPT-FILE-NAME
@@ -1432,7 +1432,7 @@ static bool tryToSwitchToRunningPraat (bool foundTheOpenOption, bool foundTheSen
 static void interpretCommandLineArguments (bool weWereStartedFromTheCommandLine, int argc, char **argv) {
 	//TRACE   // the tracing file may not have been set yet, so this will probably go to stderr
 	for (int iarg = 0; iarg < argc; iarg ++)
-		trace (U"arg ", iarg, U": <<", Melder_peek8to32 (argv [iarg]), U">>");
+		trace (U"arg ", iarg, U": <<", Melder_peek8to32_u (argv [iarg]), U">>");
 
 	praatP.argc = argc;
 	praatP.argv = argv;
@@ -1476,7 +1476,7 @@ static void interpretCommandLineArguments (bool weWereStartedFromTheCommandLine,
 			praatP.ignorePlugins = true;
 			praatP.argumentNumber += 1;
 		} else if (strnequ (argv [praatP.argumentNumber], "--pref-dir=", 11)) {
-			Melder_setPreferencesFolder (Melder_peek8to32 (argv [praatP.argumentNumber] + 11));
+			Melder_setPreferencesFolder (Melder_peek8to32_u (argv [praatP.argumentNumber] + 11));
 			praatP.argumentNumber += 1;
 		} else if (strequ (argv [praatP.argumentNumber], "--version")) {
 			Melder_information (Melder_upperCaseAppName(), U" ", Melder_appVersionSTR(),
@@ -1511,7 +1511,7 @@ static void interpretCommandLineArguments (bool weWereStartedFromTheCommandLine,
 			praatP.argumentNumber += 2;   // jump over the argument, which is usually "YES" (this jump works correctly even if this argument is missing)
 		} else if (strnequ (argv [praatP.argumentNumber], "-psn_", 5)) {
 			(void) 0;   // ignore this option, which was added by the Finder, perhaps when dragging a file on Praat (Process Serial Number)
-			trace (U"Process serial number ", Melder_peek8to32 (argv [praatP.argumentNumber]));
+			trace (U"Process serial number ", Melder_peek8to32_u (argv [praatP.argumentNumber]));
 			praatP.argumentNumber += 1;
 		#endif
 		} else if (strequ (argv [praatP.argumentNumber], "-sgi") ||
@@ -1529,7 +1529,7 @@ static void interpretCommandLineArguments (bool weWereStartedFromTheCommandLine,
 			praatP.argumentNumber += 1;
 		} else {
 			MelderInfo_open ();
-			MelderInfo_writeLine (U"Unrecognized command line option ", Melder_peek8to32 (argv [praatP.argumentNumber]), U"\n");
+			MelderInfo_writeLine (U"Unrecognized command line option ", Melder_peek8to32_u (argv [praatP.argumentNumber]), U"\n");
 			printHelp ();
 			MelderInfo_close ();
 			exit (-1);
@@ -1639,7 +1639,7 @@ static void interpretCommandLineArguments (bool weWereStartedFromTheCommandLine,
 			We now get the script file name. It is next on the command line
 			(not necessarily *last* on the line, because there may be script arguments after it).
 		*/
-		MelderString_copy (& theCurrentPraatApplication -> batchName, Melder_peek8to32 (argv [praatP.argumentNumber ++]));
+		MelderString_copy (& theCurrentPraatApplication -> batchName, Melder_peek8to32_u (argv [praatP.argumentNumber ++]));
 		if (praatP.hasCommandLineInput)
 			Melder_throw (U"Cannot have both command line input and a script file.");
 	} else {
@@ -1912,9 +1912,9 @@ void praat_init (conststring32 title,
 		trace (U"starting the GUI application");
 		Machine_initLookAndFeel (argc, argv);
 		#if gtk
-			trace (U"locale ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+			trace (U"locale ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 			g_set_application_name (Melder_peek32to8 (title));
-			trace (U"locale ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+			trace (U"locale ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 		#elif motif
 			GuiWin_initialize2 (argc, argv);
 		#elif cocoa
@@ -1933,18 +1933,18 @@ void praat_init (conststring32 title,
 		char32 objectWindowTitle [100];
 		Melder_sprint (objectWindowTitle,100, Melder_upperCaseAppName(), U" Objects");
 		double x, y;
-		trace (U"locale ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+		trace (U"locale ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 		Gui_getWindowPositioningBounds (& x, & y, nullptr, nullptr);
-		trace (U"locale ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+		trace (U"locale ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 		theCurrentPraatApplication -> topShell = raam = GuiWindow_create (x + 10, y, WINDOW_WIDTH, WINDOW_HEIGHT, 450, 250,
 				objectWindowTitle, gui_cb_quit, nullptr, 0);
-		trace (U"locale ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+		trace (U"locale ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 		#if motif
 			GuiApp_setApplicationShell (theCurrentPraatApplication -> topShell -> d_xmShell);
 		#endif
-		trace (U"before objects window shows locale ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+		trace (U"before objects window shows locale ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 		GuiThing_show (raam);
-		trace (U"after objects window shows locale ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+		trace (U"after objects window shows locale ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 	}
 	Thing_recognizeClassesByName (classCollection, classStrings, classManPages, classStringSet);
 	Thing_recognizeClassByOtherName (classStringSet, U"SortedSetOfString");
@@ -1990,10 +1990,10 @@ void praat_init (conststring32 title,
 	theCurrentPraatApplication -> manPages = ManPages_create ().releaseToAmbiguousOwner();
 
 	trace (U"creating the Picture window");
-	trace (U"before picture window shows: locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+	trace (U"before picture window shows: locale is ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 	if (! praatP.dontUsePictureWindow)
 		praat_picture_init (! praatP.commandLineOptions.hidePicture);
-	trace (U"after picture window shows: locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+	trace (U"after picture window shows: locale is ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 }
 
 static void executeStartUpFile (MelderFolder startUpDirectory, conststring32 fileNameHead, conststring32 fileNameTail) {
@@ -2057,7 +2057,7 @@ static void executeStartUpFile (MelderFolder startUpDirectory, conststring32 fil
 void praat_run () {
 	trace (U"adding menus, second round");
 	praat_addMenus2 ();
-	trace (U"locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+	trace (U"locale is ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 
 	trace (U"adding the Quit command");
 	praat_addMenuCommand (U"Objects", U"Praat", U"-- quit --", nullptr, 0, nullptr);
@@ -2095,7 +2095,7 @@ void praat_run () {
 
 	if (! MelderFolder_isNull (Melder_preferencesFolder()) && ! praatP.ignorePlugins) {
 		trace (U"install plug-ins");
-		trace (U"locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+		trace (U"locale is ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 		/*
 			The Praat phase should remain praat_STARTING_UP,
 			because any added commands must not be included in the buttons file.
@@ -2443,11 +2443,11 @@ void praat_run () {
 		i = 0;
 		snprintf (buffer,40, "digits 1 to 9: %d%d%d%d%d%d%d%d%d", ++ i, ++ i, ++ i, ++ i, ++ i, ++ i, ++ i, ++ i, ++ i);
 		Melder_assert (i == 9);
-		trace (Melder_peek8to32 (buffer));
+		trace (Melder_peek8to32_u (buffer));
 		i = 0;
 		snprintf (buffer,40, "digits 1 to 9: %d%d%d%d%d%d%d%d%d", i ++, i ++, i ++, i ++, i ++, i ++, i ++, i ++, i ++);
 		Melder_assert (i == 9);
-		trace (Melder_peek8to32 (buffer));
+		trace (Melder_peek8to32_u (buffer));
 		/*
 			Results: trace and snprintf yield the same sequence as each other, on all systems we tested (last checked 2024-08-18)
 			Pre-incrementing gives:
@@ -2580,7 +2580,7 @@ void praat_run () {
 		}
 
 		trace (U"sorting the commands");
-		trace (U"locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+		trace (U"locale is ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 		praat_sortMenuCommands ();
 		praat_sortActions ();
 
@@ -2593,7 +2593,7 @@ void praat_run () {
 			*/
 			for (; praatP.argumentNumber < praatP.argc; praatP.argumentNumber ++) {
 				autostring32 text = Melder_dup (Melder_cat (U"Read from file... ",   // TODO: ~
-															Melder_peek8to32 (praatP.argv [praatP.argumentNumber])));
+															Melder_peek8to32_u (praatP.argv [praatP.argumentNumber])));
 				trace (U"Argument ", praatP.argumentNumber, U": <<", text.get(), U">>");
 				try {
 					praat_executeScriptFromText (text.get());
@@ -2631,14 +2631,14 @@ void praat_run () {
 		#if gtk
 			//gtk_widget_add_events (G_OBJECT (theCurrentPraatApplication -> topShell), GDK_ALL_EVENTS_MASK);
 			trace (U"install GTK key snooper");
-			trace (U"locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+			trace (U"locale is ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 			//g_signal_newv ("SENDPRAAT", G_TYPE_FROM_CLASS (gobject_class), G_SIGNAL_RUN_LAST, NULL, NULL, NULL, NULL, G_TYPE_NONE, 0, NULL);
 			g_signal_connect (G_OBJECT (theCurrentPraatApplication -> topShell -> d_gtkWindow), "property-notify-event",
 					G_CALLBACK (cb_userMessage), nullptr);
 			signal (SIGUSR1, cb_sigusr1);
 			gtk_key_snooper_install (theKeySnooper, 0);
 			trace (U"start the GTK event loop");
-			trace (U"locale is ", Melder_peek8to32 (setlocale (LC_ALL, nullptr)));
+			trace (U"locale is ", Melder_peek8to32_u (setlocale (LC_ALL, nullptr)));
 			gtk_main ();
 		#elif motif
 			for (;;) {

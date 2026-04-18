@@ -256,7 +256,7 @@ void ggml_abort(const char * file, int line, const char * fmt, ...) {
         ggml_print_backtrace();
     }
 
- 	Melder_throw (Melder_peek8to32 (message));
+ 	Melder_throw (Melder_peek8to32_u (message));
 }
 
 #define GGML_MALLOC(size)      ggml_malloc(size)

@@ -686,7 +686,7 @@ static void _GuiNativizeWidget (GuiObject me) {
 }
 
 static GuiObject createWidget (int widgetClass, GuiObject parent, const char *name) {
-	GuiObject me = _Gui_initializeWidget (widgetClass, parent, Melder_peek8to32 (name));
+	GuiObject me = _Gui_initializeWidget (widgetClass, parent, Melder_peek8to32_u (name));
 	_GuiNativizeWidget (me);
 	//TRACE
 	trace (U"Created widget ", Melder_pointer (me));
@@ -923,7 +923,7 @@ static void _motif_setValues (GuiObject me, va_list arg) {
 		case XmNdialogTitle:
 			Melder_assert (MEMBER2 (me, Form, BulletinBoard));
 			text = va_arg (arg, char *);
-			SetWindowTextW (my shell -> window, Melder_peek32toW (Melder_peek8to32 (text)));
+			SetWindowTextW (my shell -> window, Melder_peek32toW (Melder_peek8to32_u (text)));
 			break;
 		case XmNheight:
 			my height = va_arg (arg, int);
@@ -964,7 +964,7 @@ static void _motif_setValues (GuiObject me, va_list arg) {
 		case XmNlabelString:
 			Melder_assert (MEMBER2 (me, CascadeButton, PushButton));
 			text = va_arg (arg, char *);
-			my name = Melder_8to32 (text);   // BUG throwable
+			my name = Melder_8to32_e (text);   // BUG throwable
 			if (my inMenu) {
 				_GuiWinMenuItem_setText (me);
 			} else if (MEMBER (me, CascadeButton) && my motiff.cascadeButton.inBar) {
@@ -1062,12 +1062,12 @@ static void _motif_setValues (GuiObject me, va_list arg) {
 		case XmNtitle:
 			Melder_assert (MEMBER (me, Shell));
 			text = va_arg (arg, char *);
-			SetWindowTextW (my window, Melder_peek32toW (Melder_peek8to32 (text)));
+			SetWindowTextW (my window, Melder_peek32toW (Melder_peek8to32_u (text)));
 			break;
 		case XmNtitleString:
 			Melder_assert (MEMBER (me, Scale));
 			text = va_arg (arg, char *);
-			my name = Melder_8to32 (text);   // BUG throwable
+			my name = Melder_8to32_e (text);   // BUG throwable
 			_Gui_invalidateWidget (me);
 			break;
 		case XmNtopAttachment:
@@ -1118,7 +1118,7 @@ static void _motif_setValues (GuiObject me, va_list arg) {
 			if (resource < 0 || resource >= sizeof motif_resourceNames / sizeof (char *))
 				Melder_flushError (U"(XtVaSetValues:) Resource out of range (", resource, U").");
 			else
-				Melder_flushError (U"(XtVaSetValues:) Unknown resource \"", Melder_peek8to32 (motif_resourceNames [resource]), U"\".");
+				Melder_flushError (U"(XtVaSetValues:) Unknown resource \"", Melder_peek8to32_u (motif_resourceNames [resource]), U"\".");
 			return;   // because we do not know how to skip this unknown resource
 		}
 	}
@@ -1372,7 +1372,7 @@ void XtAddCallback (GuiObject me, int kind, XtCallbackProc proc, XtPointer closu
 			if (kind < 0 || kind >= sizeof motif_resourceNames / sizeof (char *))
 				Melder_flushError (U"(XtAddCallback:) Callback name out of range (", kind, U").");
 			else
-				Melder_flushError (U"(XtAddCallback:) Unknown callback \"", Melder_peek8to32 (motif_resourceNames [kind]), U"\".");
+				Melder_flushError (U"(XtAddCallback:) Unknown callback \"", Melder_peek8to32_u (motif_resourceNames [kind]), U"\".");
 	}
 }
 
@@ -1977,7 +1977,7 @@ void XtVaGetValues (GuiObject me, ...) {
 			if (resource < 0 || resource >= sizeof motif_resourceNames / sizeof (char *))
 				Melder_flushError (U"(XtVaGetValues:) Resource out of range (", resource, U").");
 			else
-				Melder_flushError (U"(XtVaGetValues:) Unknown resource \"", Melder_peek8to32 (motif_resourceNames [resource]), U"\".");
+				Melder_flushError (U"(XtVaGetValues:) Unknown resource \"", Melder_peek8to32_u (motif_resourceNames [resource]), U"\".");
 			return;
 		}
 	}

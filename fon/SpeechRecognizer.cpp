@@ -555,7 +555,7 @@ WhisperTranscription SpeechRecognizer_recognize (SpeechRecognizer me, constSound
 				/*
 					Now partialTokenText is valid UTF8.
 				*/
-				autostring32 raw_token_text = Melder_8to32 (partialTokenText.c_str());
+				autostring32 raw_token_text = Melder_8to32_e (partialTokenText.c_str());
 				conststring32 token_text = raw_token_text.get();
 				integer length_token_text = Melder_length (token_text);
 				double tmax = partialTokenTmax;
@@ -780,7 +780,7 @@ constSTRVEC theSpeechRecognizerLanguageNames () {
 		try {
 			const uint8 nLanguages = whisper_lang_max_id();
 			for (uint8 i = 0; i < nLanguages; i ++) {
-				autostring32 languageName = Melder_8to32 (whisper_lang_str_full (i));
+				autostring32 languageName = Melder_8to32_e (whisper_lang_str_full (i));
 
 				/*
 					Capitalize the first letter, e.g. "dutch" -> "Dutch".

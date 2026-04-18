@@ -376,7 +376,7 @@ static void segmentation_load_model(diarize_model_loader * loader, segmentation_
 
 		auto it = model.tensors.find(name);
 		if (it == model.tensors.end())
-		    Melder_throw(U": unknown tensor '", Melder_peek8to32(name.c_str()), U"'");
+		    Melder_throw(U": unknown tensor '", Melder_peek8to32_u(name.c_str()), U"'");
 
 		auto tensor = it->second;
 		const size_t bpe = ggml_type_size(ggml_type(ttype));
@@ -934,7 +934,7 @@ static void embedding_load_model(diarize_model_loader * loader, embedding_model 
 
         auto it = model.tensors.find(name);
         if (it == model.tensors.end())
-            Melder_throw (U"Unknown tensor '", Melder_peek8to32(name.c_str()), U"'");
+            Melder_throw (U"Unknown tensor '", Melder_peek8to32_u (name.c_str()), U"'");
 
         auto tensor = it->second;
     	const size_t bpe = ggml_type_size(ggml_type(ttype));
@@ -2103,14 +2103,14 @@ struct diarize_context * diarize_init_from_file(const char * seg_model_path, con
 	auto * seg_fin = new std::ifstream(seg_model_path, std::ios::binary);
 	if (!seg_fin->is_open()) {
 		delete seg_fin;
-	    Melder_throw (U"Failed to open '", Melder_peek8to32 (seg_model_path), U"'.");
+	    Melder_throw (U"Failed to open '", Melder_peek8to32_u (seg_model_path), U"'.");
 	}
 
 	auto * emb_fin = new std::ifstream(emb_model_path, std::ios::binary);
 	if (!emb_fin->is_open()) {
 	    delete seg_fin;
 	    delete emb_fin;
-	    Melder_throw (U"Failed to open '", Melder_peek8to32(emb_model_path), U"'.");
+	    Melder_throw (U"Failed to open '", Melder_peek8to32_u (emb_model_path), U"'.");
 	}
 
     auto seg_loader = create_file_loader(seg_fin);
