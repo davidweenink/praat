@@ -135,7 +135,7 @@ Also, we add GGML_API memory wrappers declaration in `ggml.h` after declaring `g
 3.2.2. To intercept GGML abortions and throw Melder exception instead, we change the following line in ggml_abort():
 ```
 //abort();   // this is the old line which needs to be removed
-Melder_throw (Melder_peek8to32 (message));   // this is the new line
+Melder_throw (Melder_peek8to32_u (message));   // this is the new line
 ```
 
 3.2.3. We also change the functions ggml_aligned_malloc(), ggml_aligned_free(), ggml_malloc(), ggml_calloc(),

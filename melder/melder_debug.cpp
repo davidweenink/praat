@@ -1,6 +1,6 @@
 /* melder_debug.cpp
  *
- * Copyright (C) 2000-2025 Paul Boersma
+ * Copyright (C) 2000-2026 Paul Boersma
  *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -260,7 +260,7 @@ void Melder_setTracing (bool tracing) {
 	if (! tracing)
 		trace (U"switch tracing off"
 			U" in Praat version ", Melder_appVersionSTR(),
-			U" at ", Melder_peek8to32 (ctime (& today))
+			U" at ", Melder_peek8to32_u (ctime (& today))
 		);
 	Melder_isTracingGlobally = tracing;
 	#if defined (linux) && ! defined (NO_GUI)
@@ -279,7 +279,7 @@ void Melder_setTracing (bool tracing) {
 	if (tracing)
 		trace (U"switch tracing on"
 			U" in Praat version ", Melder_appVersionSTR(),
-			U" at ", Melder_peek8to32 (ctime (& today))
+			U" at ", Melder_peek8to32_u (ctime (& today))
 		);
 }
 

@@ -1,10 +1,10 @@
 /* EEG.cpp
  *
- * Copyright (C) 2011-2023 Paul Boersma
+ * Copyright (C) 2011-2026 Paul Boersma
  *
  * This code is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
+ * the Free Software Foundation; either version 3 of the License, or (at
  * your option) any later version.
  *
  * This code is distributed in the hope that it will be useful, but
@@ -101,23 +101,23 @@ autoEEG EEG_readFromBdfFile (MelderFile file) {
 		const bool is24bit = ( buffer [0] == (char) 255 );
 		(void) fread (buffer, 1, 80, f);
 		buffer [80] = '\0';
-		trace (U"Local subject identification: \"", Melder_peek8to32 (buffer), U"\"");
+		trace (U"Local subject identification: \"", Melder_peek8to32_u (buffer), U"\"");
 		(void) fread (buffer, 1, 80, f);
 		buffer [80] = '\0';
-		trace (U"Local recording identification: \"", Melder_peek8to32 (buffer), U"\"");
+		trace (U"Local recording identification: \"", Melder_peek8to32_u (buffer), U"\"");
 		(void) fread (buffer, 1, 8, f);
 		buffer [8] = '\0';
-		trace (U"Start date of recording: \"", Melder_peek8to32 (buffer), U"\"");
+		trace (U"Start date of recording: \"", Melder_peek8to32_u (buffer), U"\"");
 		(void) fread (buffer, 1, 8, f);
 		buffer [8] = '\0';
-		trace (U"Start time of recording: \"", Melder_peek8to32 (buffer), U"\"");
+		trace (U"Start time of recording: \"", Melder_peek8to32_u (buffer), U"\"");
 		(void) fread (buffer, 1, 8, f);
 		buffer [8] = '\0';
 		const integer numberOfBytesInHeaderRecord = atol (buffer);
 		trace (U"Number of bytes in header record: ", numberOfBytesInHeaderRecord);
 		(void) fread (buffer, 1, 44, f);
 		buffer [44] = '\0';
-		trace (U"Version of data format: \"", Melder_peek8to32 (buffer), U"\"");
+		trace (U"Version of data format: \"", Melder_peek8to32_u (buffer), U"\"");
 		(void) fread (buffer, 1, 8, f);
 		buffer [8] = '\0';
 		const integer numberOfDataRecords = strtol (buffer, nullptr, 10);
@@ -146,7 +146,7 @@ autoEEG EEG_readFromBdfFile (MelderFile file) {
 				else
 					break;
 			}
-			channelNames [ichannel] = Melder_8to32 (buffer);
+			channelNames [ichannel] = Melder_8to32_e (buffer);
 			trace (U"Channel <<", channelNames [ichannel].get(), U">>");
 		}
 		const bool hasLetters = str32equ (channelNames [numberOfChannels].get(), U"EDF Annotations");
