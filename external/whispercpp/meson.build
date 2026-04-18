@@ -1,5 +1,5 @@
 # meson.build of the external library "whisper"
-# David Weenink, 30 March 2026
+# David Weenink, 18 April 2026
 
 whisper_and_ggml_objects = '''
 	whisper.cpp	diarize.cpp ggml.cpp ggml-type-traits.c ggml-memory-pool.cpp
@@ -19,7 +19,7 @@ sources = whisper_and_ggml_objects + ggml_cpu_objects + model_objects
 libwhisper = static_library (
 	'whisper',
 	sources : sources,
-	include_directories : melder_inc
+	include_directories : [melder_inc, fon_inc, sys_inc]
 )
 
 libwhisper_dep = declare_dependency (
