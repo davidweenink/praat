@@ -26,15 +26,14 @@
 #include "GuiP.h"
 #include "machine.h"
 
-#if defined (macintosh)
+static void (*theQuitApplicationCallback) ();
 
-static int (*theQuitApplicationCallback) ();
-
-void Gui_setQuitApplicationCallback (int (*quitApplicationCallback) (void)) {
+void Gui_setQuitApplicationCallback (void (*quitApplicationCallback) ()) {
 	theQuitApplicationCallback = quitApplicationCallback;
 }
-
-#endif // defined (macintosh)
+void Gui_runQuitApplicationCallback () {
+	theQuitApplicationCallback ();
+}
 
 #if defined (_WIN32)
 #define TRY_BARLESS  0

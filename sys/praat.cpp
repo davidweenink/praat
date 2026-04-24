@@ -880,8 +880,12 @@ DO
 	END_NO_NEW_DATA
 }
 
-static void gui_cb_quit (Thing /* me */) {
+static void cb_quitApplication () {
 	DO_Quit (nullptr, 0, nullptr, nullptr, nullptr, nullptr, false, nullptr, nullptr);
+}
+
+static void gui_cb_quit (Thing /* me */) {
+	Gui_runQuitApplicationCallback ();
 }
 
 void praat_dontUsePictureWindow () { praatP.dontUsePictureWindow = true; }
@@ -991,10 +995,6 @@ void praat_dontUsePictureWindow () { praatP.dontUsePictureWindow = true; }
 		} catch (MelderError) {
 			Melder_flushError (Melder_upperCaseAppName(), U": message not completely handled.");
 		}
-		return 0;
-	}
-	static int cb_quitApplication () {
-		DO_Quit (nullptr, 0, nullptr, nullptr, nullptr, nullptr, false, nullptr, nullptr);
 		return 0;
 	}
 #endif
@@ -1901,11 +1901,10 @@ void praat_init (conststring32 title,
 			motif_win_setUserMessageCallback (cb_userMessage);
 	#endif
 	#if defined (macintosh)
-		if (! Melder_batch) {
+		if (! Melder_batch)
 			mac_setUserMessageCallback (cb_userMessage);   // not earlier
-			Gui_setQuitApplicationCallback (cb_quitApplication);   // BUG: the Quit Application message (from the system) is never actually handled
-		}
 	#endif
+	Gui_setQuitApplicationCallback (cb_quitApplication);
 
 	GuiWindow raam = nullptr;
 	if (! Melder_batch) {
@@ -2061,7 +2060,8 @@ void praat_run () {
 
 	trace (U"adding the Quit command");
 	praat_addMenuCommand (U"Objects", U"Praat", U"-- quit --", nullptr, 0, nullptr);
-	praat_addMenuCommand (U"Objects", U"Praat", U"Quit", nullptr, GuiMenu_UNHIDABLE | 'Q' | GuiMenu_NO_API, DO_Quit);
+	praat_addMenuCommand (U"Objects", U"Praat", Melder_cat (U"Quit ", Melder_upperCaseAppName ()), nullptr, GuiMenu_UNHIDABLE | 'Q' | GuiMenu_NO_API, DO_Quit);
+	praat_addMenuCommand (U"Objects", U"Praat", U"Quit", nullptr, GuiMenu_HIDDEN | GuiMenu_NO_API, DO_Quit);
 
 	trace (U"read the preferences file, and notify those who want to be notified of this");
 	/* ...namely, those who already have a window (namely, the Picture window),
