@@ -404,7 +404,11 @@ static void menu_cb_sendBackToCallingProgram (Editor me, EDITOR_ARGS) {
 static void menu_cb_close (Editor me, EDITOR_ARGS) {
 	my v_goAway ();
 	if (optionalInterpreter && (optionalInterpreter -> optionalOwningEnvironmentEditor() == me || optionalInterpreter -> optionalDynamicEnvironmentEditor() == me))
-		optionalInterpreter -> undangleEditorEnvironments();
+		optionalInterpreter -> undangleEditorEnvironments ();
+}
+
+static void menu_cb_quit (Editor /* me */, EDITOR_ARGS) {
+	Gui_runQuitApplicationCallback ();
 }
 
 static void menu_cb_undo (Editor me, EDITOR_ARGS) {
@@ -654,6 +658,9 @@ void Editor_init (Editor me, int x, int y, int width, int height, conststring32 
 		if (my callbackSocket)
 			EditorMenu_addCommand (my fileMenu, U"Send back to calling program", 0, menu_cb_sendBackToCallingProgram);
 		EditorMenu_addCommand (my fileMenu, U"Close", 'W', menu_cb_close);
+		#ifndef macintosh
+			EditorMenu_addCommand (my fileMenu, Melder_cat (U"Quit ", Melder_upperCaseAppName (), U" || Quit"), 'Q', menu_cb_quit);
+		#endif
 	}
 	GuiThing_show (my windowForm);
 }
