@@ -29,6 +29,10 @@ R"~~~(
 
 Latest changes in Praat.
 
+##6.4.65# (24 April 2026)
+• Fixed a bug that could lead to a “Text is not valid UTF-8” error message in automatic transcription.
+• More windows recognize Command-Q (##Quit Praat#).
+
 ##6.4.64# (17 April 2026)
 • Many small improvements and bug repairs in speech recognition, including automatic alignment and diarization.
 
